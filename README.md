@@ -166,6 +166,37 @@ Helpers in `src/utils/storage.ts`:
 
 No component calls `localStorage` directly.
 
+## Authentication
+
+### Flow
+
+1. User submits email/password on login form
+2. `useLogin()` mutation calls `authService.login()` (simulates 1s delay)
+3. On success, `AuthContext.login(token)` stores token and sets `isAuthenticated = true`
+4. User is redirected to `/dashboard`
+
+### Route Protection
+
+- `ProtectedRoute` — reads `isAuthenticated` from AuthContext; redirects to `/login` if false
+- `GuestRoute` — prevents authenticated users from accessing `/login`; redirects to `/dashboard`
+
+### Session Persistence
+
+Token stored in localStorage survives page refresh. `AuthProvider` initializes state by checking for existing token.
+
+### Logout
+
+Removes auth token and selected user from localStorage, resets `isAuthenticated` to false, redirects to login.
+
+### Validation
+
+Login form uses React Hook Form + Zod:
+- Email: must be valid email format
+- Password: required (non-empty)
+- Submit disabled while loading
+- Inline error messages per field
+- Server error displayed above form
+
 ## Development
 
 ```bash

@@ -1,0 +1,55 @@
+@use '@/styles/abstracts/variables' as *;
+
+.container {
+  width: 100%;
+  max-width: 450px;
+}
+
+.title {
+  font-size: 40px;
+  font-weight: $font-weight-bold;
+  color: var(--color-secondary);
+  margin-bottom: $spacing-sm;
+}
+
+.subtitle {
+  font-size: $font-size-xl;
+  color: var(--color-text-secondary);
+  margin-bottom: $spacing-xl;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.error {
+  padding: 12px $spacing-md;
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+}
+
+.forgotLink {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: var(--color-primary);
+  letter-spacing: 0.12em;
+  align-self: flex-start;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.submitButton {
+  width: 100%;
+  margin-top: $spacing-sm;
+}

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import ProtectedRoute from './ProtectedRoute'
+import GuestRoute from './GuestRoute'
 import { LoginPage } from '@/pages/Login'
 import { DashboardPage } from '@/pages/Dashboard'
 import { UsersPage } from '@/pages/Users'
@@ -11,8 +12,10 @@ import { NotFoundPage } from '@/pages/NotFound'
 function AppRoutes() {
   return (
     <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
+      <Route element={<GuestRoute />}>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+        </Route>
       </Route>
 
       <Route element={<ProtectedRoute />}>
