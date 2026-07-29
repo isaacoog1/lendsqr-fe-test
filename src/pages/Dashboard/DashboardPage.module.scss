@@ -1,0 +1,56 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+}
+
+.title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-lg;
+
+  @include respond-to(desktop) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeletonCard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+}
+
+.skeletonTable {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+}
+
+.empty {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-3xl;
+  color: var(--color-text-secondary);
+}

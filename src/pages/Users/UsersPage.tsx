@@ -1,8 +1,82 @@
-function UsersPage() {
+import { useUsers } from '@/hooks'
+import { StatCard } from '@/components/features/StatCard'
+import { UsersTable } from '@/components/features/UsersTable'
+import { Skeleton, ErrorState, Button } from '@/components/ui'
+import { dashboardStats } from '@/pages/Dashboard/dashboardStats'
+import styles from './UsersPage.module.scss'
+
+function UsersPageSkeleton() {
   return (
-    <div>
-      <h1>Users</h1>
-      <p>Users list will be implemented here.</p>
+    <div className={styles.page}>
+      <h1 className={styles.title}>Users</h1>
+      <div className={styles.stats}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={styles.skeletonCard}>
+            <Skeleton variant="circular" width="40px" height="40px" />
+            <Skeleton width="80px" height="12px" />
+            <Skeleton width="60px" height="24px" />
+          </div>
+        ))}
+      </div>
+      <div className={styles.skeletonTable}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} height="48px" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function UsersPage() {
+  const { data: users, isLoading, isError, refetch } = useUsers()
+
+  if (isLoading) {
+    return <UsersPageSkeleton />
+  }
+
+  if (isError) {
+    return (
+      <div className={styles.page}>
+        <h1 className={styles.title}>Users</h1>
+        <ErrorState
+          title="Failed to load users"
+          message="We couldn't fetch the user data. Please try again."
+          action={<Button onClick={() => refetch()}>Retry</Button>}
+        />
+      </div>
+    )
+  }
+
+  if (!users || users.length === 0) {
+    return (
+      <div className={styles.page}>
+        <h1 className={styles.title}>Users</h1>
+        <ErrorState
+          title="No users found"
+          message="There are no users to display at this time."
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Users</h1>
+
+      <div className={styles.stats}>
+        {dashboardStats.map((stat) => (
+          <StatCard
+            key={stat.label}
+            icon={stat.icon}
+            iconColor={stat.iconColor}
+            iconBgColor={stat.iconBgColor}
+            label={stat.label}
+            value={stat.getValue(users)}
+          />
+        ))}
+      </div>
+
+      <UsersTable data={users} />
     </div>
   )
 }

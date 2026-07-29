@@ -1,4 +1,4 @@
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, Menu, Search, ChevronDown } from 'lucide-react'
 import { Avatar } from '@/components/ui'
 import styles from './Header.module.scss'
 
@@ -45,6 +45,7 @@ function Header({ onMenuClick }: HeaderProps) {
         <div className={styles.profile}>
           <Avatar name="Adedeji" size="sm" />
           <span className={styles.profileName}>Adedeji</span>
+          <ChevronDown size={14} className={styles.profileChevron} />
         </div>
       </div>
     </header>

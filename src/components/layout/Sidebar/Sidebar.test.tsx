@@ -1,12 +1,17 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi } from 'vitest'
+import { AuthProvider } from '@/contexts/AuthProvider'
+import { STORAGE_KEYS } from '@/constants'
 import Sidebar from './Sidebar'
 
 function renderSidebar(isOpen = true) {
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
   return render(
     <MemoryRouter initialEntries={['/users']}>
-      <Sidebar isOpen={isOpen} onClose={vi.fn()} />
+      <AuthProvider>
+        <Sidebar isOpen={isOpen} onClose={vi.fn()} />
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -39,5 +44,15 @@ describe('Sidebar', () => {
   it('renders switch organization option', () => {
     renderSidebar()
     expect(screen.getByText('Switch Organization')).toBeInTheDocument()
+  })
+
+  it('renders logout button at the bottom', () => {
+    renderSidebar()
+    expect(screen.getByText('Logout')).toBeInTheDocument()
+  })
+
+  it('renders version number', () => {
+    renderSidebar()
+    expect(screen.getByText('v1.2.0')).toBeInTheDocument()
   })
 })

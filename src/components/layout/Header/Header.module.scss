@@ -149,3 +149,11 @@
     display: none;
   }
 }
+
+.profileChevron {
+  color: var(--color-text-secondary);
+
+  @include respond-to(mobile) {
+    display: none;
+  }
+}

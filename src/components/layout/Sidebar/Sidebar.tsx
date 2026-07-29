@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom'
-import { ChevronDown, X } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { ChevronDown, X, LogOut } from 'lucide-react'
 import { cn } from '@/utils'
+import { useAuth } from '@/contexts/useAuth'
 import {
   sidebarConfig,
   dashboardItem,
@@ -15,6 +16,13 @@ interface SidebarProps {
 
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const SwitchIcon = switchOrgItem.icon
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <>
@@ -68,6 +76,14 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
+
+        <div className={styles.footer}>
+          <button className={styles.logoutButton} onClick={handleLogout}>
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+          <span className={styles.version}>v1.2.0</span>
+        </div>
       </aside>
     </>
   )

@@ -197,6 +197,35 @@ Login form uses React Hook Form + Zod:
 - Inline error messages per field
 - Server error displayed above form
 
+## Dashboard
+
+### Statistics Cards
+
+Four stat cards rendered from a config array (`dashboardStats.ts`). Each card computes its value from the users array — no hardcoded numbers. Cards are responsive (4-column grid → 2-column on tablet → 1-column on mobile).
+
+### Users Table
+
+Built with TanStack Table. Features:
+
+- **Columns**: Organization, Username, Email, Phone, Date Joined, Status, Actions
+- **Pagination**: 20 rows per page, page size selector (10/20/50/100)
+- **Sorting**: Click any column header to sort
+- **Status badges**: Color-coded (Active, Inactive, Pending, Blacklisted)
+- **Actions menu**: Dropdown with View Details, Blacklist User, Activate User
+- **Responsive**: Horizontal scroll on narrow viewports
+
+### Loading State
+
+Skeleton cards and skeleton rows (not plain text spinners).
+
+### Error State
+
+Full-page error with retry button that calls `refetch()`.
+
+### Pagination Decision
+
+20 items per page. No virtualization — with 500 records, pagination already limits rendered DOM to a manageable size. If asked: virtualization adds complexity (intersection observers, dynamic row heights) that isn't justified at this scale.
+
 ## Development
 
 ```bash
