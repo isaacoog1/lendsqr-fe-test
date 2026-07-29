@@ -1,0 +1,6 @@
+export { default as GeneralDetails } from './GeneralDetails'
+export { default as Documents } from './Documents'
+export { default as BankDetails } from './BankDetails'
+export { default as Loans } from './Loans'
+export { default as Savings } from './Savings'
+export { default as AppAndSystem } from './AppAndSystem'

@@ -1,0 +1,84 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.container {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  box-shadow: $shadow-sm;
+  padding: $spacing-lg $spacing-lg 0;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  padding-bottom: $spacing-lg;
+  flex-wrap: wrap;
+
+  @include respond-to(tablet) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.nameSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: var(--color-text-primary);
+}
+
+.id {
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+}
+
+.divider {
+  width: 1px;
+  height: 80px;
+  background-color: var(--color-border);
+
+  @include respond-to(tablet) {
+    width: 100%;
+    height: 1px;
+  }
+}
+
+.tierSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+
+  @include respond-to(tablet) {
+    align-items: flex-start;
+  }
+}
+
+.tierLabel {
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+}
+
+.balanceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balance {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: var(--color-text-primary);
+}
+
+.bank {
+  font-size: $font-size-xs;
+  color: var(--color-text-secondary);
+}

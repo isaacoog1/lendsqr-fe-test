@@ -1,0 +1,41 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-lg $spacing-xl;
+
+  @include respond-to(desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include respond-to(tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-regular;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}

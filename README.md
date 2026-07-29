@@ -249,6 +249,31 @@ Three distinct scenarios handled:
 2. Search/filter yields zero results — "No results found" + "Clear Filters" action
 3. API error — Error message + Retry button
 
+## User Details
+
+### Persistence Strategy
+
+When "View Details" is clicked, the user object is saved to localStorage via `saveSelectedUser()`. The details page reads from localStorage first. If the cached user's ID matches the URL param, it renders immediately (no network delay on page refresh). If mismatched or missing, it falls back to fetching via `useUser(id)`.
+
+### Tab Architecture
+
+Six tabs: General Details, Documents, Bank Details, Loans, Savings, App and System. Each tab renders an isolated section component (`src/pages/UserDetails/sections/`). Only the active tab's content is in the DOM.
+
+### Reusable Components
+
+- **InfoGrid** — Renders label/value pairs in a responsive 5→3→2→1 column grid
+- **TierStars** — Accepts `tier` prop, renders filled/empty stars dynamically
+- **UserProfileHeader** — Avatar, name, account number, tier, balance, bank, tabs
+
+### Formatting & Missing Values
+
+All values pass through InfoGrid which displays `—` for undefined/null/empty values. Currency and dates use centralized formatters from `src/utils/format.ts`.
+
+### Error Handling
+
+- User not found in localStorage or API → "User not found" with link back to Users
+- Corrupted localStorage (invalid JSON) → `storage.get()` returns null gracefully
+
 ## Development
 
 ```bash

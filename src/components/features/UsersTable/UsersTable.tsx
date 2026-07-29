@@ -143,9 +143,25 @@ function UsersTable({ data }: UsersTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className={styles.tr}>
+              <tr
+                key={row.id}
+                className={styles.tr}
+                onClick={() => {
+                  const user = row.original
+                  saveSelectedUser(user)
+                  navigate(`/users/${user.id}`)
+                }}
+              >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className={styles.td}>
+                  <td
+                    key={cell.id}
+                    className={styles.td}
+                    onClick={
+                      cell.column.id === 'actions'
+                        ? (e) => e.stopPropagation()
+                        : undefined
+                    }
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
