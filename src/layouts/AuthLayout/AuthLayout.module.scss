@@ -47,6 +47,7 @@
 
 .right {
   @include flex-center;
+  flex-direction: column;
   width: 50%;
   padding: $spacing-xl;
   background-color: var(--color-white);
@@ -55,5 +56,15 @@
     width: 100%;
     min-height: 100vh;
     padding: $spacing-lg;
+    justify-content: center;
+  }
+}
+
+.mobileLogo {
+  display: none;
+
+  @include respond-to(tablet) {
+    display: block;
+    margin-bottom: $spacing-2xl;
   }
 }

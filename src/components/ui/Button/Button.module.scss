@@ -25,6 +25,10 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
 }
 
 .sm {

@@ -56,6 +56,10 @@
   border-radius: $radius-sm;
   box-shadow: $shadow-sm;
   padding: $spacing-xl;
+
+  @include respond-to(mobile) {
+    padding: $spacing-md;
+  }
 }
 
 .skeletonHeader {

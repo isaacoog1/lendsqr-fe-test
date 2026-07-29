@@ -7,6 +7,10 @@
   border-radius: $radius-sm;
   box-shadow: $shadow-sm;
   padding: $spacing-lg $spacing-lg 0;
+
+  @include respond-to(mobile) {
+    padding: $spacing-md $spacing-md 0;
+  }
 }
 
 .info {

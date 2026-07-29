@@ -6,13 +6,16 @@
 }
 
 .trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 6px;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: background-color $transition-fast;
+  color: var(--color-text-secondary);
 
   &:hover {
     background-color: var(--color-background);
@@ -21,6 +24,10 @@
   &:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+
+  svg {
+    flex-shrink: 0;
   }
 }
 
@@ -34,6 +41,18 @@
   border: 1px solid var(--color-border);
   border-radius: $radius-sm;
   box-shadow: $shadow-lg;
+  animation: dropdownIn $transition-fast forwards;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .left {

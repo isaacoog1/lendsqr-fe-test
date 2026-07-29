@@ -1,8 +1,11 @@
 @use '@/styles/abstracts/variables' as *;
 
+@use '@/styles/abstracts/mixins' as *;
+
 .container {
   width: 100%;
   max-width: 450px;
+  padding: 0 $spacing-md;
 }
 
 .title {
@@ -10,6 +13,10 @@
   font-weight: $font-weight-bold;
   color: var(--color-secondary);
   margin-bottom: $spacing-sm;
+
+  @include respond-to(mobile) {
+    font-size: $font-size-3xl;
+  }
 }
 
 .subtitle {

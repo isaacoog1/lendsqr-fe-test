@@ -293,6 +293,41 @@ npm run test
 npm run build
 ```
 
+## Responsive Design
+
+### Breakpoints
+
+| Breakpoint | Width | Behavior |
+|-----------|-------|----------|
+| Mobile | ≤ 480px | Single column, reduced header (70px), compact padding |
+| Tablet | ≤ 768px | Sidebar becomes drawer, 2-column grids |
+| Desktop | ≤ 1024px | Stat cards collapse to 2 columns |
+| Wide | > 1024px | Full layout with sidebar visible |
+
+### Key Responsive Decisions
+
+- **Sidebar**: Fixed on desktop, slide-in drawer with overlay on tablet/mobile
+- **Tables**: Horizontal scroll within container (min-width: 800px ensures readability)
+- **Stat cards**: 4 → 2 → 1 column grid
+- **User details**: InfoGrid adapts from 5 → 3 → 2 → 1 columns
+- **Login**: Left illustration panel hidden on tablet; logo shown above form instead
+
+### Accessibility
+
+- `prefers-reduced-motion`: All animations and transitions disabled
+- Focus-visible outlines on all interactive elements
+- Minimum 28px touch targets for pagination and controls
+- Semantic HTML: `<nav>`, `<main>`, `<header>`, `<aside>`, `role="tablist"`
+- ARIA labels on icon-only buttons, search, pagination
+
+### Micro-interactions
+
+- Button press: subtle scale (0.97) on active
+- Table rows: background highlight on hover, teal flash on active/click
+- Dropdown menus: fade + slide-up animation
+- Sidebar overlay: fade-in animation
+- Sidebar nav items: smooth border-color transition
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and configure:

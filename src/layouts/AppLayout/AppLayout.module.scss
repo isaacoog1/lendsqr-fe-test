@@ -11,12 +11,15 @@
   margin-left: $sidebar-width;
   padding: $spacing-xl;
   min-height: calc(100vh - $header-height);
+  transition: margin-left $transition-base;
 
   @include respond-to(tablet) {
     margin-left: 0;
   }
 
   @include respond-to(mobile) {
+    margin-top: 70px;
+    min-height: calc(100vh - 70px);
     padding: $spacing-md;
   }
 }

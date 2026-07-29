@@ -208,7 +208,10 @@ function UsersPage() {
             }
           />
         ) : (
-          <UsersTable data={filteredUsers} />
+          <UsersTable
+            data={filteredUsers}
+            onFilterClick={() => setFiltersOpen(true)}
+          />
         )}
       </div>
     </div>

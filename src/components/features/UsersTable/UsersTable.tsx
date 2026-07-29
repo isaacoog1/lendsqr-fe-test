@@ -9,18 +9,54 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
-import { MoreVertical, Eye, UserX, UserCheck } from 'lucide-react'
+import { MoreVertical, Eye, UserX, UserCheck, UserMinus, ListFilter } from 'lucide-react'
+import type { UserStatus } from '@/types'
 import { useNavigate } from 'react-router-dom'
 import type { User } from '@/types'
 import { formatDate, saveSelectedUser } from '@/utils'
 import { Badge, Dropdown, Pagination } from '@/components/ui'
 import styles from './UsersTable.module.scss'
 
-interface UsersTableProps {
-  data: User[]
+function getActionsForStatus(status: UserStatus, onViewDetails: () => void) {
+  const viewDetails = {
+    label: 'View Details',
+    icon: <Eye size={14} />,
+    onClick: onViewDetails,
+  }
+
+  switch (status) {
+    case 'active':
+      return [
+        viewDetails,
+        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
+        { label: 'Deactivate User', icon: <UserMinus size={14} />, onClick: () => {} },
+      ]
+    case 'inactive':
+      return [
+        viewDetails,
+        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
+        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
+      ]
+    case 'pending':
+      return [
+        viewDetails,
+        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
+        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
+      ]
+    case 'blacklisted':
+      return [
+        viewDetails,
+        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
+      ]
+  }
 }
 
-function UsersTable({ data }: UsersTableProps) {
+interface UsersTableProps {
+  data: User[]
+  onFilterClick?: () => void
+}
+
+function UsersTable({ data, onFilterClick }: UsersTableProps) {
   const navigate = useNavigate()
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -64,26 +100,10 @@ function UsersTable({ data }: UsersTableProps) {
         return (
           <Dropdown
             trigger={<MoreVertical size={16} />}
-            items={[
-              {
-                label: 'View Details',
-                icon: <Eye size={14} />,
-                onClick: () => {
-                  saveSelectedUser(user)
-                  navigate(`/users/${user.id}`)
-                },
-              },
-              {
-                label: 'Blacklist User',
-                icon: <UserX size={14} />,
-                onClick: () => {},
-              },
-              {
-                label: 'Activate User',
-                icon: <UserCheck size={14} />,
-                onClick: () => {},
-              },
-            ]}
+            items={getActionsForStatus(user.status, () => {
+              saveSelectedUser(user)
+              navigate(`/users/${user.id}`)
+            })}
           />
         )
       },
@@ -119,21 +139,24 @@ function UsersTable({ data }: UsersTableProps) {
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={styles.th}
-                    onClick={header.column.getToggleSortingHandler()}
-                    style={{
-                      cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                    }}
-                  >
+                  <th key={header.id} className={styles.th}>
                     <span className={styles.headerContent}>
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext(),
                       )}
-                      {header.column.getCanSort() && (
-                        <span className={styles.sortIcon}>⇅</span>
+                      {header.column.id !== 'actions' && (
+                        <button
+                          type="button"
+                          className={styles.filterIcon}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onFilterClick?.()
+                          }}
+                          aria-label={`Filter by ${header.column.columnDef.header}`}
+                        >
+                          <ListFilter size={12} />
+                        </button>
                       )}
                     </span>
                   </th>

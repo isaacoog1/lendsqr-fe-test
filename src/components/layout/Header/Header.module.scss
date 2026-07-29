@@ -13,12 +13,21 @@
   border-bottom: 1px solid var(--color-border);
   box-shadow: $shadow-sm;
   z-index: 50;
+
+  @include respond-to(mobile) {
+    height: 70px;
+    padding: 0 $spacing-md;
+  }
 }
 
 .left {
   display: flex;
   align-items: center;
   gap: $spacing-xl;
+
+  @include respond-to(mobile) {
+    gap: $spacing-md;
+  }
 }
 
 .menuButton {
@@ -99,6 +108,10 @@
   display: flex;
   align-items: center;
   gap: $spacing-lg;
+
+  @include respond-to(mobile) {
+    gap: $spacing-sm;
+  }
 }
 
 .docsLink {

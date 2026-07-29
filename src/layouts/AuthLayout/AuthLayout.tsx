@@ -17,6 +17,9 @@ function AuthLayout() {
         </div>
       </div>
       <div className={styles.right}>
+        <div className={styles.mobileLogo}>
+          <img src="/logo.svg" alt="Lendsqr" className={styles.logo} />
+        </div>
         <Outlet />
       </div>
     </div>

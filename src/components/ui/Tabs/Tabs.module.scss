@@ -5,6 +5,7 @@
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
   &::-webkit-scrollbar {
     display: none;
@@ -13,7 +14,7 @@
 
 .tab {
   position: relative;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-md $spacing-md;
   font-size: $font-size-sm;
   font-weight: $font-weight-regular;
   color: var(--color-text-secondary);
