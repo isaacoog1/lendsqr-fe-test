@@ -1,0 +1,22 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.layout {
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.main {
+  margin-top: $header-height;
+  margin-left: $sidebar-width;
+  padding: $spacing-xl;
+  min-height: calc(100vh - $header-height);
+
+  @include respond-to(tablet) {
+    margin-left: 0;
+  }
+
+  @include respond-to(mobile) {
+    padding: $spacing-md;
+  }
+}

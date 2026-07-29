@@ -1,0 +1,59 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+
+  @include respond-to(tablet) {
+    flex-direction: column;
+  }
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+  padding: $spacing-xl;
+  background-color: var(--color-white);
+
+  @include respond-to(tablet) {
+    display: none;
+  }
+}
+
+.logoWrapper {
+  position: absolute;
+  top: $spacing-xl;
+  left: $spacing-xl;
+}
+
+.logo {
+  height: 36px;
+  width: auto;
+}
+
+.illustration {
+  max-width: 600px;
+  width: 100%;
+}
+
+.illustrationImage {
+  width: 100%;
+  height: auto;
+}
+
+.right {
+  @include flex-center;
+  width: 50%;
+  padding: $spacing-xl;
+  background-color: var(--color-white);
+
+  @include respond-to(tablet) {
+    width: 100%;
+    min-height: 100vh;
+    padding: $spacing-lg;
+  }
+}

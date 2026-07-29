@@ -1,0 +1,151 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.header {
+  @include flex-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $header-height;
+  padding: 0 $spacing-lg;
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: $shadow-sm;
+  z-index: 50;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xl;
+}
+
+.menuButton {
+  display: none;
+  padding: $spacing-sm;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+
+  @include respond-to(tablet) {
+    display: flex;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
+.logoImage {
+  height: 30px;
+  width: auto;
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  overflow: hidden;
+
+  @include respond-to(tablet) {
+    display: none;
+  }
+}
+
+.searchInput {
+  flex: 1;
+  padding: 10px $spacing-md;
+  border: none;
+  font-size: $font-size-sm;
+  color: var(--color-text-primary);
+  background: transparent;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.searchButton {
+  @include flex-center;
+  padding: 12px $spacing-md;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: var(--color-primary-dark);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: -2px;
+  }
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.docsLink {
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+
+  @include respond-to(tablet) {
+    display: none;
+  }
+}
+
+.iconButton {
+  @include flex-center;
+  padding: $spacing-sm;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  cursor: pointer;
+}
+
+.profileName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+
+  @include respond-to(mobile) {
+    display: none;
+  }
+}

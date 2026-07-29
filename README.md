@@ -102,6 +102,33 @@ Reusable UI components live in `src/components/ui/`. Each component is self-cont
 - **Theming**: Colors defined as CSS custom properties for easy overriding
 - **Abstracts**: Shared `$variables` and `@mixins` imported per module via `@use`
 
+## Application Shell
+
+### Layouts
+
+| Layout | Used For |
+|--------|----------|
+| `AuthLayout` | Login page — split-screen with illustration left, form right |
+| `AppLayout` | All authenticated pages — header + sidebar + main content |
+
+### Routing
+
+Routes are centralized in `src/routes/index.tsx`.
+
+| Path | Page | Protected |
+|------|------|-----------|
+| `/login` | Login | No |
+| `/dashboard` | Dashboard | Yes |
+| `/users` | Users list | Yes |
+| `/users/:id` | User details | Yes |
+| `*` | 404 | No |
+
+`/` redirects to `/dashboard`. Unauthenticated users accessing protected routes are redirected to `/login`.
+
+### Sidebar
+
+Sidebar navigation is config-driven (`src/config/sidebar.ts`). Groups: Customers, Businesses, Settings. Items rendered dynamically with Lucide icons. Active route indicated via left border highlight. Collapses to a drawer on tablet/mobile with overlay.
+
 ## Development
 
 ```bash

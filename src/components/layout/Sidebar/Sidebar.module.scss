@@ -1,0 +1,115 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.sidebar {
+  position: fixed;
+  top: $header-height;
+  left: 0;
+  bottom: 0;
+  width: $sidebar-width;
+  background-color: var(--color-white);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  padding: $spacing-lg 0;
+  z-index: 40;
+  transition: transform $transition-base;
+
+  @include respond-to(tablet) {
+    position: fixed;
+    top: 0;
+    transform: translateX(-100%);
+    z-index: 100;
+    padding-top: $spacing-3xl;
+    box-shadow: $shadow-lg;
+  }
+}
+
+.open {
+  @include respond-to(tablet) {
+    transform: translateX(0);
+  }
+}
+
+.overlay {
+  display: none;
+
+  @include respond-to(tablet) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+  }
+}
+
+.closeButton {
+  display: none;
+
+  @include respond-to(tablet) {
+    display: flex;
+    position: absolute;
+    top: $spacing-md;
+    right: $spacing-md;
+    padding: $spacing-sm;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+}
+
+.switchOrg {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  margin-bottom: $spacing-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.group {
+  margin-top: $spacing-lg;
+}
+
+.groupTitle {
+  display: block;
+  padding: $spacing-sm $spacing-lg;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 10px $spacing-lg;
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+  transition: background-color $transition-fast, color $transition-fast;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-text-primary);
+  border-left-color: var(--color-primary);
+}

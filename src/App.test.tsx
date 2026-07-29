@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import App from './App'
 
 describe('App', () => {
-  it('renders without crashing', () => {
+  it('renders login page when unauthenticated', () => {
     render(<App />)
-    expect(screen.getByText('Lendsqr')).toBeInTheDocument()
+    expect(screen.getByText('Welcome!')).toBeInTheDocument()
   })
 })
