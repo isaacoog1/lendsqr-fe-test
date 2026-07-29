@@ -129,6 +129,43 @@ Routes are centralized in `src/routes/index.tsx`.
 
 Sidebar navigation is config-driven (`src/config/sidebar.ts`). Groups: Customers, Businesses, Settings. Items rendered dynamically with Lucide icons. Active route indicated via left border highlight. Collapses to a drawer on tablet/mobile with overlay.
 
+## API & Data Layer
+
+### Request Flow
+
+```
+Component → useUsers() hook → usersService.getAll() → Mock DB (500 Faker-generated users)
+```
+
+### Mock API
+
+Instead of an external mock API, the data layer uses a seeded Faker.js generator (`src/mocks/generateUsers.ts`) that produces 500 deterministic user records. Services simulate network latency with configurable delays. This approach is self-contained (no external dependencies), reproducible (seeded), and easily swappable for a real API later.
+
+### Services
+
+| Service | Methods |
+|---------|---------|
+| `users.service.ts` | `getAll()`, `getById(id)` |
+| `auth.service.ts` | `login({ email, password })` |
+
+### React Query Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useUsers()` | Fetches all users with caching |
+| `useUser(id)` | Fetches single user by ID |
+| `useLogin()` | Mutation for authentication |
+
+### Local Storage
+
+Helpers in `src/utils/storage.ts`:
+
+- `saveSelectedUser(user)` — persists selected user for detail view
+- `getSelectedUser()` — retrieves persisted user
+- `clearSelectedUser()` — removes on logout/navigation
+
+No component calls `localStorage` directly.
+
 ## Development
 
 ```bash
