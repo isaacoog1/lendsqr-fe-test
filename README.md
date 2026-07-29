@@ -226,6 +226,29 @@ Full-page error with retry button that calls `refetch()`.
 
 20 items per page. No virtualization — with 500 records, pagination already limits rendered DOM to a manageable size. If asked: virtualization adds complexity (intersection observers, dynamic row heights) that isn't justified at this scale.
 
+## Users Module
+
+### Search
+
+Client-side search against name, username, email, and phone number. Input is debounced by 300ms (`useDebounce` hook) to avoid re-filtering on every keystroke.
+
+### Filtering
+
+Filter panel with fields matching Figma: Organization, Username, Email, Phone, Date Joined, Status. Managed by React Hook Form + Zod. Filters are composable — multiple active filters narrow results together. Reset clears all fields and restores the full dataset.
+
+### Performance
+
+- `organizations` list — memoized (`useMemo`) since it's derived from all 500 users
+- `filteredUsers` — memoized, recomputes only when users/filters/search change
+- `stats` — memoized, avoids recalculating totals on every render
+
+### Empty States
+
+Three distinct scenarios handled:
+1. API returns zero users — "No users to display"
+2. Search/filter yields zero results — "No results found" + "Clear Filters" action
+3. API error — Error message + Retry button
+
 ## Development
 
 ```bash

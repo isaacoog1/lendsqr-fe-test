@@ -1,0 +1,39 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  width: 270px;
+  padding: $spacing-lg;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  box-shadow: $shadow-lg;
+
+  @include respond-to(mobile) {
+    width: 100%;
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding: $spacing-md;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+
+  button {
+    flex: 1;
+  }
+}

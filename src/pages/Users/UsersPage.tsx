@@ -1,9 +1,60 @@
-import { useUsers } from '@/hooks'
+import { useMemo, useState } from 'react'
+import { useUsers, useDebounce } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
-import { Skeleton, ErrorState, Button } from '@/components/ui'
+import { UserFilters, type FilterFormData } from '@/components/features/UserFilters'
+import { Skeleton, ErrorState, EmptyState, Button } from '@/components/ui'
 import { dashboardStats } from '@/pages/Dashboard/dashboardStats'
+import type { User } from '@/types'
 import styles from './UsersPage.module.scss'
+
+function applyFilters(users: User[], filters: FilterFormData): User[] {
+  return users.filter((user) => {
+    if (filters.organization && user.organization !== filters.organization) {
+      return false
+    }
+    if (
+      filters.username &&
+      !user.username.toLowerCase().includes(filters.username.toLowerCase())
+    ) {
+      return false
+    }
+    if (
+      filters.email &&
+      !user.email.toLowerCase().includes(filters.email.toLowerCase())
+    ) {
+      return false
+    }
+    if (
+      filters.phoneNumber &&
+      !user.phoneNumber.includes(filters.phoneNumber)
+    ) {
+      return false
+    }
+    if (filters.dateJoined) {
+      const userDate = new Date(user.dateJoined).toISOString().split('T')[0]
+      if (userDate !== filters.dateJoined) {
+        return false
+      }
+    }
+    if (filters.status && user.status !== filters.status) {
+      return false
+    }
+    return true
+  })
+}
+
+function applySearch(users: User[], query: string): User[] {
+  if (!query) return users
+  const lower = query.toLowerCase()
+  return users.filter(
+    (user) =>
+      user.personalInfo.fullName.toLowerCase().includes(lower) ||
+      user.username.toLowerCase().includes(lower) ||
+      user.email.toLowerCase().includes(lower) ||
+      user.phoneNumber.includes(query),
+  )
+}
 
 function UsersPageSkeleton() {
   return (
@@ -29,6 +80,30 @@ function UsersPageSkeleton() {
 
 function UsersPage() {
   const { data: users, isLoading, isError, refetch } = useUsers()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<FilterFormData>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  const debouncedSearch = useDebounce(searchQuery)
+
+  const organizations = useMemo(() => {
+    if (!users) return []
+    return [...new Set(users.map((u) => u.organization))].sort()
+  }, [users])
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return []
+    const afterFilters = applyFilters(users, filters)
+    return applySearch(afterFilters, debouncedSearch)
+  }, [users, filters, debouncedSearch])
+
+  const stats = useMemo(() => {
+    if (!users) return []
+    return dashboardStats.map((stat) => ({
+      ...stat,
+      computedValue: stat.getValue(users),
+    }))
+  }, [users])
 
   if (isLoading) {
     return <UsersPageSkeleton />
@@ -51,32 +126,91 @@ function UsersPage() {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Users</h1>
-        <ErrorState
+        <EmptyState
           title="No users found"
-          message="There are no users to display at this time."
+          description="There are no users to display at this time."
         />
       </div>
     )
   }
+
+  const hasActiveFilters = Object.values(filters).some((v) => !!v)
+  const noResults = filteredUsers.length === 0
 
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Users</h1>
 
       <div className={styles.stats}>
-        {dashboardStats.map((stat) => (
+        {stats.map((stat) => (
           <StatCard
             key={stat.label}
             icon={stat.icon}
             iconColor={stat.iconColor}
             iconBgColor={stat.iconBgColor}
             label={stat.label}
-            value={stat.getValue(users)}
+            value={stat.computedValue}
           />
         ))}
       </div>
 
-      <UsersTable data={users} />
+      <div className={styles.tableSection}>
+        <div className={styles.toolbar}>
+          <div className={styles.searchWrapper}>
+            <input
+              type="text"
+              placeholder="Search by name, email, or phone"
+              className={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search users"
+            />
+          </div>
+          <div className={styles.filterWrapper}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              aria-expanded={filtersOpen}
+            >
+              {hasActiveFilters ? 'Filters Active' : 'Filter'}
+            </Button>
+            <UserFilters
+              organizations={organizations}
+              isOpen={filtersOpen}
+              onClose={() => setFiltersOpen(false)}
+              onApply={(f) => setFilters(f)}
+              onReset={() => setFilters({})}
+            />
+          </div>
+        </div>
+
+        {noResults ? (
+          <EmptyState
+            title="No results found"
+            description={
+              hasActiveFilters || debouncedSearch
+                ? 'Try adjusting your search or filter criteria.'
+                : 'There are no users to display.'
+            }
+            action={
+              (hasActiveFilters || debouncedSearch) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFilters({})
+                    setSearchQuery('')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <UsersTable data={filteredUsers} />
+        )}
+      </div>
     </div>
   )
 }
