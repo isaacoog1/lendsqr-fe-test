@@ -75,6 +75,33 @@ A common alternative is a single `call(body, path, method)` function that handle
 
 The tradeoff is slightly more boilerplate per endpoint, but in a codebase of this size that cost is negligible compared to the safety and clarity gained.
 
+## Design System
+
+Reusable UI components live in `src/components/ui/`. Each component is self-contained with its own SCSS module and barrel export.
+
+| Component | Purpose |
+|-----------|---------|
+| Button | Primary, secondary, outline, danger variants with loading state |
+| Input | Text/password with label, error, and password toggle |
+| Select | Native select with custom styling and error state |
+| Card | Content container with padding variants |
+| Badge | Status indicators (active, inactive, pending, blacklisted) |
+| Avatar | User image with initials fallback |
+| Spinner | Loading indicator in three sizes |
+| Skeleton | Content placeholder with shimmer animation |
+| EmptyState | Zero-data messaging with optional action |
+| ErrorState | Error messaging with retry action slot |
+| Pagination | Page navigation with size selector |
+| Dropdown | Context menu triggered by any element |
+| Tabs | Horizontal tab bar with underline indicator |
+
+### SCSS Strategy
+
+- **Global**: Reset, typography, CSS custom properties (colors), variables, mixins
+- **Component**: SCSS Modules colocated with each component
+- **Theming**: Colors defined as CSS custom properties for easy overriding
+- **Abstracts**: Shared `$variables` and `@mixins` imported per module via `@use`
+
 ## Development
 
 ```bash

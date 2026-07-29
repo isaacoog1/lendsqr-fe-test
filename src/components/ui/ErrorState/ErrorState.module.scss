@@ -1,0 +1,26 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.container {
+  @include flex-center;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-3xl $spacing-lg;
+  text-align: center;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: var(--color-error);
+}
+
+.message {
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+  max-width: 400px;
+}
+
+.action {
+  margin-top: $spacing-sm;
+}

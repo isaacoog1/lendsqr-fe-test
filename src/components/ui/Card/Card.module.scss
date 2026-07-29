@@ -1,0 +1,24 @@
+@use '@/styles/abstracts/variables' as *;
+
+.card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  box-shadow: $shadow-sm;
+}
+
+.none {
+  padding: 0;
+}
+
+.sm {
+  padding: $spacing-md;
+}
+
+.md {
+  padding: $spacing-lg;
+}
+
+.lg {
+  padding: $spacing-xl;
+}

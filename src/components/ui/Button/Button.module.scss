@@ -1,0 +1,102 @@
+@use '@/styles/abstracts/variables' as *;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  border: none;
+  border-radius: $radius-sm;
+  font-family: $font-family-primary;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast,
+    opacity $transition-fast;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.sm {
+  padding: 8px 16px;
+  font-size: $font-size-xs;
+}
+
+.md {
+  padding: 12px 24px;
+  font-size: $font-size-sm;
+}
+
+.lg {
+  padding: 14px 32px;
+  font-size: $font-size-base;
+}
+
+.primary {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+  }
+}
+
+.secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-white);
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+}
+
+.outline {
+  background-color: transparent;
+  border: 1px solid var(--color-text-secondary);
+  color: var(--color-text-secondary);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-text-secondary);
+    color: var(--color-white);
+  }
+}
+
+.danger {
+  background-color: transparent;
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-error);
+    color: var(--color-white);
+  }
+}
+
+.loading {
+  position: relative;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
