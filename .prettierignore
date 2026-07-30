@@ -1,0 +1,9 @@
+# Build output and generated files
+dist
+coverage
+package-lock.json
+public/api
+
+# Prose is hand-wrapped and tables are hand-aligned; reflowing adds churn
+# without improving readability. Formatting is enforced on code only.
+*.md
