@@ -63,7 +63,9 @@ describe('UsersPage', () => {
     renderUsersPage()
     await waitFor(
       () => {
-        expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Filter' }),
+        ).toBeInTheDocument()
       },
       { timeout: 3000 },
     )
@@ -101,7 +103,9 @@ describe('UsersPage', () => {
     await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Clear Filters' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Clear Filters' }),
+      ).toBeInTheDocument()
     })
   })
 
@@ -111,7 +115,9 @@ describe('UsersPage', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Filter' }),
+        ).toBeInTheDocument()
       },
       { timeout: 3000 },
     )

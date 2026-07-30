@@ -100,12 +100,18 @@ describe('UserDetailsPage', () => {
     localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
     renderUserDetails()
 
-    expect(screen.getByRole('tab', { name: 'General Details' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('tab', { name: 'General Details' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Bank Details' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('tab', { name: 'Bank Details' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Loans' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Savings' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'App and System' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('tab', { name: 'App and System' }),
+    ).toBeInTheDocument()
   })
 
   it('renders general details by default', () => {
@@ -149,7 +155,11 @@ describe('UserDetailsPage', () => {
     localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
     renderUserDetails()
 
-    expect(screen.getByRole('button', { name: 'BLACKLIST USER' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'ACTIVATE USER' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'BLACKLIST USER' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'ACTIVATE USER' }),
+    ).toBeInTheDocument()
   })
 })

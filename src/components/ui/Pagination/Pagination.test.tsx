@@ -39,7 +39,13 @@ describe('Pagination', () => {
   it('calls onPageChange with previous page', async () => {
     const user = userEvent.setup()
     const onPageChange = vi.fn()
-    render(<Pagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />)
+    render(
+      <Pagination
+        {...defaultProps}
+        currentPage={5}
+        onPageChange={onPageChange}
+      />,
+    )
 
     await user.click(screen.getByLabelText('Previous page'))
     expect(onPageChange).toHaveBeenCalledWith(4)
@@ -47,6 +53,9 @@ describe('Pagination', () => {
 
   it('marks current page with aria-current', () => {
     render(<Pagination {...defaultProps} currentPage={3} />)
-    expect(screen.getByLabelText('Page 3')).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByLabelText('Page 3')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 })

@@ -37,7 +37,14 @@ const SECTORS = [
   'Retail',
 ]
 
-const RELATIONSHIPS = ['Sister', 'Brother', 'Mother', 'Father', 'Friend', 'Spouse']
+const RELATIONSHIPS = [
+  'Sister',
+  'Brother',
+  'Mother',
+  'Father',
+  'Friend',
+  'Spouse',
+]
 
 const RESIDENCES = [
   "Parent's Apartment",
@@ -57,9 +64,7 @@ function generateUser(): User {
     username: faker.internet.username({ firstName, lastName }),
     email: faker.internet.email({ firstName, lastName }).toLowerCase(),
     phoneNumber: `0${faker.string.numeric(10)}`,
-    dateJoined: faker.date
-      .past({ years: 3 })
-      .toISOString(),
+    dateJoined: faker.date.past({ years: 3 }).toISOString(),
     status: faker.helpers.arrayElement(STATUSES),
 
     personalInfo: {
@@ -83,7 +88,9 @@ function generateUser(): User {
       durationOfEmployment: `${faker.number.int({ min: 1, max: 15 })} years`,
       officeEmail: faker.internet.email().toLowerCase(),
       monthlyIncome: `₦${faker.number.int({ min: 100000, max: 900000 }).toLocaleString()}.00 - ₦${faker.number.int({ min: 200000, max: 1000000 }).toLocaleString()}.00`,
-      loanRepayment: faker.number.int({ min: 10000, max: 200000 }).toLocaleString(),
+      loanRepayment: faker.number
+        .int({ min: 10000, max: 200000 })
+        .toLocaleString(),
     },
 
     socials: {

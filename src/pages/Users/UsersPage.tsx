@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react'
 import { useUsers, useDebounce } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
-import { UserFilters, type FilterFormData } from '@/components/features/UserFilters'
+import {
+  UserFilters,
+  type FilterFormData,
+} from '@/components/features/UserFilters'
 import { Skeleton, ErrorState, EmptyState, Button } from '@/components/ui'
 import { dashboardStats } from '@/pages/Dashboard/dashboardStats'
 import type { User } from '@/types'

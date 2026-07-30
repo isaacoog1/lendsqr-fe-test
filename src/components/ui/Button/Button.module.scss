@@ -10,7 +10,9 @@
   font-family: $font-family-primary;
   font-weight: $font-weight-semibold;
   cursor: pointer;
-  transition: background-color $transition-fast, border-color $transition-fast,
+  transition:
+    background-color $transition-fast,
+    border-color $transition-fast,
     opacity $transition-fast;
   white-space: nowrap;
   letter-spacing: 0.1em;

@@ -2,11 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { ChevronDown, X, LogOut } from 'lucide-react'
 import { cn } from '@/utils'
 import { useAuth } from '@/contexts/useAuth'
-import {
-  sidebarConfig,
-  dashboardItem,
-  switchOrgItem,
-} from '@/config/sidebar'
+import { sidebarConfig, dashboardItem, switchOrgItem } from '@/config/sidebar'
 import styles from './Sidebar.module.scss'
 
 interface SidebarProps {

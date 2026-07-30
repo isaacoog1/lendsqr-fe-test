@@ -20,7 +20,10 @@ function GeneralDetails({ user }: GeneralDetailsProps) {
             { label: 'GENDER', value: user.personalInfo.gender },
             { label: 'MARITAL STATUS', value: user.personalInfo.maritalStatus },
             { label: 'CHILDREN', value: user.personalInfo.children },
-            { label: 'TYPE OF RESIDENCE', value: user.personalInfo.typeOfResidence },
+            {
+              label: 'TYPE OF RESIDENCE',
+              value: user.personalInfo.typeOfResidence,
+            },
           ]}
         />
       </div>
@@ -29,13 +32,34 @@ function GeneralDetails({ user }: GeneralDetailsProps) {
         <h3 className={styles.groupTitle}>Education and Employment</h3>
         <InfoGrid
           items={[
-            { label: 'LEVEL OF EDUCATION', value: user.educationAndEmployment.levelOfEducation },
-            { label: 'EMPLOYMENT STATUS', value: user.educationAndEmployment.employmentStatus },
-            { label: 'SECTOR OF EMPLOYMENT', value: user.educationAndEmployment.sectorOfEmployment },
-            { label: 'DURATION OF EMPLOYMENT', value: user.educationAndEmployment.durationOfEmployment },
-            { label: 'OFFICE EMAIL', value: user.educationAndEmployment.officeEmail },
-            { label: 'MONTHLY INCOME', value: user.educationAndEmployment.monthlyIncome },
-            { label: 'LOAN REPAYMENT', value: user.educationAndEmployment.loanRepayment },
+            {
+              label: 'LEVEL OF EDUCATION',
+              value: user.educationAndEmployment.levelOfEducation,
+            },
+            {
+              label: 'EMPLOYMENT STATUS',
+              value: user.educationAndEmployment.employmentStatus,
+            },
+            {
+              label: 'SECTOR OF EMPLOYMENT',
+              value: user.educationAndEmployment.sectorOfEmployment,
+            },
+            {
+              label: 'DURATION OF EMPLOYMENT',
+              value: user.educationAndEmployment.durationOfEmployment,
+            },
+            {
+              label: 'OFFICE EMAIL',
+              value: user.educationAndEmployment.officeEmail,
+            },
+            {
+              label: 'MONTHLY INCOME',
+              value: user.educationAndEmployment.monthlyIncome,
+            },
+            {
+              label: 'LOAN REPAYMENT',
+              value: user.educationAndEmployment.loanRepayment,
+            },
           ]}
         />
       </div>

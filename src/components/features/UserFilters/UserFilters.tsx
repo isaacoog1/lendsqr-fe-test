@@ -1,7 +1,11 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, Select, Button } from '@/components/ui'
-import { filterSchema, EMPTY_FILTERS, type FilterFormData } from './filterSchema'
+import {
+  filterSchema,
+  EMPTY_FILTERS,
+  type FilterFormData,
+} from './filterSchema'
 import styles from './UserFilters.module.scss'
 
 interface UserFiltersProps {
@@ -58,17 +62,9 @@ function UserFilters({
           {...register('organization')}
         />
 
-        <Input
-          label="Username"
-          placeholder="User"
-          {...register('username')}
-        />
+        <Input label="Username" placeholder="User" {...register('username')} />
 
-        <Input
-          label="Email"
-          placeholder="Email"
-          {...register('email')}
-        />
+        <Input label="Email" placeholder="Email" {...register('email')} />
 
         <Input
           label="Date"

@@ -30,7 +30,11 @@ function UserDetailsPage() {
 
   const cachedUser = getSelectedUser()
   const shouldFetch = !cachedUser || cachedUser.id !== id
-  const { data: fetchedUser, isLoading, isError } = useUser(shouldFetch ? id! : '')
+  const {
+    data: fetchedUser,
+    isLoading,
+    isError,
+  } = useUser(shouldFetch ? id! : '')
 
   const user = shouldFetch ? fetchedUser : cachedUser
 

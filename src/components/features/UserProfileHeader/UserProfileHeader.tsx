@@ -19,10 +19,7 @@ function UserProfileHeader({
   return (
     <div className={styles.container}>
       <div className={styles.info}>
-        <Avatar
-          name={user.personalInfo.fullName}
-          size="xl"
-        />
+        <Avatar name={user.personalInfo.fullName} size="xl" />
         <div className={styles.nameSection}>
           <h2 className={styles.name}>{user.personalInfo.fullName}</h2>
           <p className={styles.id}>{user.accountNumber}</p>

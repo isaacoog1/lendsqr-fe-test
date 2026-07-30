@@ -9,7 +9,13 @@ interface StatCardProps {
   value: string | number
 }
 
-function StatCard({ icon: Icon, iconColor, iconBgColor, label, value }: StatCardProps) {
+function StatCard({
+  icon: Icon,
+  iconColor,
+  iconBgColor,
+  label,
+  value,
+}: StatCardProps) {
   return (
     <div className={styles.card}>
       <div

@@ -51,7 +51,9 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity $transition-fast, color $transition-fast;
+  transition:
+    opacity $transition-fast,
+    color $transition-fast;
 
   &:hover {
     opacity: 1;

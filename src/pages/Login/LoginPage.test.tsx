@@ -40,7 +40,9 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /log in/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument()
+      expect(
+        screen.getByText('Please enter a valid email address'),
+      ).toBeInTheDocument()
     })
     expect(screen.getByText('Password is required')).toBeInTheDocument()
   })
@@ -54,7 +56,9 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /log in/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument()
+      expect(
+        screen.getByText('Please enter a valid email address'),
+      ).toBeInTheDocument()
     })
   })
 
@@ -65,6 +69,8 @@ describe('LoginPage', () => {
 
   it('shows password toggle button', () => {
     renderLoginPage()
-    expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Show password' }),
+    ).toBeInTheDocument()
   })
 })

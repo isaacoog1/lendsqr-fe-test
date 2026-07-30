@@ -20,9 +20,8 @@ describe('NotFoundPage', () => {
         <NotFoundPage />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('link', { name: 'Go to Dashboard' })).toHaveAttribute(
-      'href',
-      '/dashboard',
-    )
+    expect(
+      screen.getByRole('link', { name: 'Go to Dashboard' }),
+    ).toHaveAttribute('href', '/dashboard')
   })
 })

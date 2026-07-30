@@ -43,7 +43,11 @@ function LoginPage() {
       <h1 className={styles.title}>Welcome!</h1>
       <p className={styles.subtitle}>Enter details to login.</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={styles.form}
+        noValidate
+      >
         {error && (
           <div className={styles.error} role="alert">
             {error}

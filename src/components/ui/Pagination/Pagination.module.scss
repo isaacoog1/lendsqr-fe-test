@@ -81,7 +81,9 @@
   font-size: $font-size-sm;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: color $transition-fast, opacity $transition-fast;
+  transition:
+    color $transition-fast,
+    opacity $transition-fast;
 
   &:hover {
     opacity: 0.7;

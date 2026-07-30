@@ -12,7 +12,10 @@ interface PaginationProps {
   pageSizeOptions?: number[]
 }
 
-function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+function getPageNumbers(
+  current: number,
+  total: number,
+): (number | 'ellipsis')[] {
   if (total <= 5) {
     return Array.from({ length: total }, (_, i) => i + 1)
   }
@@ -91,10 +94,7 @@ function Pagination({
           ) : (
             <button
               key={page}
-              className={cn(
-                styles.page,
-                page === currentPage && styles.active,
-              )}
+              className={cn(styles.page, page === currentPage && styles.active)}
               onClick={() => onPageChange(page)}
               aria-current={page === currentPage ? 'page' : undefined}
               aria-label={`Page ${page}`}

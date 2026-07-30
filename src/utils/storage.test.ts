@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { storage, saveSelectedUser, getSelectedUser, clearSelectedUser } from './storage'
+import {
+  storage,
+  saveSelectedUser,
+  getSelectedUser,
+  clearSelectedUser,
+} from './storage'
 import { STORAGE_KEYS } from '@/constants'
 import type { User } from '@/types'
 

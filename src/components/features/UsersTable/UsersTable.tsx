@@ -9,7 +9,14 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
-import { MoreVertical, Eye, UserX, UserCheck, UserMinus, ListFilter } from 'lucide-react'
+import {
+  MoreVertical,
+  Eye,
+  UserX,
+  UserCheck,
+  UserMinus,
+  ListFilter,
+} from 'lucide-react'
 import type { UserStatus } from '@/types'
 import { useNavigate } from 'react-router-dom'
 import type { User } from '@/types'
@@ -28,25 +35,53 @@ function getActionsForStatus(status: UserStatus, onViewDetails: () => void) {
     case 'active':
       return [
         viewDetails,
-        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
-        { label: 'Deactivate User', icon: <UserMinus size={14} />, onClick: () => {} },
+        {
+          label: 'Blacklist User',
+          icon: <UserX size={14} />,
+          onClick: () => {},
+        },
+        {
+          label: 'Deactivate User',
+          icon: <UserMinus size={14} />,
+          onClick: () => {},
+        },
       ]
     case 'inactive':
       return [
         viewDetails,
-        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
-        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
+        {
+          label: 'Activate User',
+          icon: <UserCheck size={14} />,
+          onClick: () => {},
+        },
+        {
+          label: 'Blacklist User',
+          icon: <UserX size={14} />,
+          onClick: () => {},
+        },
       ]
     case 'pending':
       return [
         viewDetails,
-        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
-        { label: 'Blacklist User', icon: <UserX size={14} />, onClick: () => {} },
+        {
+          label: 'Activate User',
+          icon: <UserCheck size={14} />,
+          onClick: () => {},
+        },
+        {
+          label: 'Blacklist User',
+          icon: <UserX size={14} />,
+          onClick: () => {},
+        },
       ]
     case 'blacklisted':
       return [
         viewDetails,
-        { label: 'Activate User', icon: <UserCheck size={14} />, onClick: () => {} },
+        {
+          label: 'Activate User',
+          icon: <UserCheck size={14} />,
+          onClick: () => {},
+        },
       ]
   }
 }

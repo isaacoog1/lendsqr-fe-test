@@ -9,7 +9,9 @@ describe('EmptyState', () => {
   })
 
   it('renders description when provided', () => {
-    render(<EmptyState title="No data" description="Try adjusting your filters" />)
+    render(
+      <EmptyState title="No data" description="Try adjusting your filters" />,
+    )
     expect(screen.getByText('Try adjusting your filters')).toBeInTheDocument()
   })
 

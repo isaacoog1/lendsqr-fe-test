@@ -31,15 +31,13 @@ export const dashboardStats: DashboardStat[] = [
     iconColor: '#F55F44',
     iconBgColor: '#F55F441A',
     label: 'USERS WITH LOANS',
-    getValue: (users) =>
-      Math.floor(users.length * 0.25).toLocaleString(),
+    getValue: (users) => Math.floor(users.length * 0.25).toLocaleString(),
   },
   {
     icon: Coins,
     iconColor: '#FF3366',
     iconBgColor: '#FF33661A',
     label: 'USERS WITH SAVINGS',
-    getValue: (users) =>
-      Math.floor(users.length * 0.2).toLocaleString(),
+    getValue: (users) => Math.floor(users.length * 0.2).toLocaleString(),
   },
 ]

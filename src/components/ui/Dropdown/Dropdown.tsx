@@ -15,7 +15,12 @@ interface DropdownProps {
   className?: string
 }
 
-function Dropdown({ trigger, items, align = 'right', className }: DropdownProps) {
+function Dropdown({
+  trigger,
+  items,
+  align = 'right',
+  className,
+}: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -60,10 +65,7 @@ function Dropdown({ trigger, items, align = 'right', className }: DropdownProps)
       </button>
 
       {isOpen && (
-        <div
-          className={cn(styles.menu, styles[align])}
-          role="menu"
-        >
+        <div className={cn(styles.menu, styles[align])} role="menu">
           {items.map((item) => (
             <button
               key={item.label}

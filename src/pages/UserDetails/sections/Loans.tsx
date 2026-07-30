@@ -13,8 +13,14 @@ function Loans({ user }: LoansProps) {
         <h3 className={styles.groupTitle}>Loan Information</h3>
         <InfoGrid
           items={[
-            { label: 'LOAN REPAYMENT', value: user.educationAndEmployment.loanRepayment },
-            { label: 'MONTHLY INCOME', value: user.educationAndEmployment.monthlyIncome },
+            {
+              label: 'LOAN REPAYMENT',
+              value: user.educationAndEmployment.loanRepayment,
+            },
+            {
+              label: 'MONTHLY INCOME',
+              value: user.educationAndEmployment.monthlyIncome,
+            },
           ]}
         />
       </div>

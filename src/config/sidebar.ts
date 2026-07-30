@@ -67,9 +67,17 @@ export const sidebarConfig: SidebarGroup[] = [
     title: 'SETTINGS',
     items: [
       { label: 'Preferences', path: '/preferences', icon: Sliders },
-      { label: 'Fees and Pricing', path: '/fees-pricing', icon: BadgeDollarSign },
+      {
+        label: 'Fees and Pricing',
+        path: '/fees-pricing',
+        icon: BadgeDollarSign,
+      },
       { label: 'Audit Logs', path: '/audit-logs', icon: FileText },
-      { label: 'Systems Messages', path: '/systems-messages', icon: BadgePercent },
+      {
+        label: 'Systems Messages',
+        path: '/systems-messages',
+        icon: BadgePercent,
+      },
     ],
   },
 ]
