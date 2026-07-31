@@ -1,54 +1,78 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { apiClient } from '@/api/client'
+import { config } from '@/config/env'
+import { buildUser } from '@/test/factories'
 import { usersService } from './users.service'
 
+vi.mock('@/api/client', () => ({
+  apiClient: { get: vi.fn() },
+}))
+
+const mockedGet = vi.mocked(apiClient.get)
+
 describe('usersService', () => {
+  beforeEach(() => {
+    mockedGet.mockReset()
+  })
+
   describe('getAll', () => {
-    it('returns 500 users', async () => {
-      const users = await usersService.getAll()
-      expect(users).toHaveLength(500)
+    it('requests the configured users path', async () => {
+      mockedGet.mockResolvedValue({ data: [] })
+
+      await usersService.getAll()
+
+      expect(mockedGet).toHaveBeenCalledWith(config.usersPath)
     })
 
-    it('each user has required fields', async () => {
-      const users = await usersService.getAll()
-      const user = users[0]
+    it('unwraps the response body', async () => {
+      const users = [buildUser(), buildUser()]
+      mockedGet.mockResolvedValue({ data: users })
 
-      expect(user).toHaveProperty('id')
-      expect(user).toHaveProperty('organization')
-      expect(user).toHaveProperty('username')
-      expect(user).toHaveProperty('email')
-      expect(user).toHaveProperty('phoneNumber')
-      expect(user).toHaveProperty('dateJoined')
-      expect(user).toHaveProperty('status')
-      expect(user).toHaveProperty('personalInfo')
-      expect(user).toHaveProperty('educationAndEmployment')
-      expect(user).toHaveProperty('socials')
-      expect(user).toHaveProperty('guarantor')
+      await expect(usersService.getAll()).resolves.toEqual(users)
     })
 
-    it('user status is one of valid values', async () => {
-      const users = await usersService.getAll()
-      const validStatuses = ['active', 'inactive', 'pending', 'blacklisted']
+    it('propagates a normalized request failure', async () => {
+      mockedGet.mockRejectedValue({
+        message: 'Please check your internet connection and try again.',
+        status: 0,
+      })
 
-      for (const user of users.slice(0, 20)) {
-        expect(validStatuses).toContain(user.status)
-      }
+      await expect(usersService.getAll()).rejects.toEqual({
+        message: 'Please check your internet connection and try again.',
+        status: 0,
+      })
     })
   })
 
   describe('getById', () => {
-    it('returns a user by id', async () => {
-      const users = await usersService.getAll()
-      const firstUser = users[0]
+    it('resolves a user from the collection', async () => {
+      const target = buildUser({ email: 'grace@lendstar.com' })
+      mockedGet.mockResolvedValue({ data: [buildUser(), target, buildUser()] })
 
-      const user = await usersService.getById(firstUser.id)
-      expect(user.id).toBe(firstUser.id)
-      expect(user.email).toBe(firstUser.email)
+      const user = await usersService.getById(target.id)
+
+      expect(user.id).toBe(target.id)
+      expect(user.email).toBe('grace@lendstar.com')
     })
 
-    it('throws when user not found', async () => {
-      await expect(usersService.getById('nonexistent-id')).rejects.toEqual({
+    it('throws a 404 when no user matches the id', async () => {
+      mockedGet.mockResolvedValue({ data: [buildUser()] })
+
+      await expect(usersService.getById('missing-id')).rejects.toEqual({
         message: 'User not found',
         status: 404,
+      })
+    })
+
+    it('propagates a request failure rather than reporting a 404', async () => {
+      mockedGet.mockRejectedValue({
+        message: 'Something went wrong',
+        status: 500,
+      })
+
+      await expect(usersService.getById('any-id')).rejects.toEqual({
+        message: 'Something went wrong',
+        status: 500,
       })
     })
   })

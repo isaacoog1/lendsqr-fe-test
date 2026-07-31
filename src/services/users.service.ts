@@ -1,22 +1,29 @@
-import { getUsers, getUserById } from '@/mocks'
-import type { User } from '@/types'
+import { apiClient } from '@/api/client'
+import { config } from '@/config/env'
+import type { ApiError, User } from '@/types'
 
-function delay(ms = 800): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
+/**
+ * The mock endpoint serves the users collection at a single path, so `getById`
+ * resolves against it rather than issuing `GET /users/:id`. React Query dedupes
+ * the request against the list query, so the details page costs no extra round
+ * trip. Against a backend with a per-resource route this becomes a one-line
+ * change to `apiClient.get<User>(`${config.usersPath}/${id}`)`.
+ */
 export const usersService = {
   async getAll(): Promise<User[]> {
-    await delay()
-    return getUsers()
+    const { data } = await apiClient.get<User[]>(config.usersPath)
+    return data
   },
 
   async getById(id: string): Promise<User> {
-    await delay(500)
-    const user = getUserById(id)
+    const users = await usersService.getAll()
+    const user = users.find((candidate) => candidate.id === id)
+
     if (!user) {
-      throw { message: 'User not found', status: 404 }
+      const notFound: ApiError = { message: 'User not found', status: 404 }
+      throw notFound
     }
+
     return user
   },
 }
