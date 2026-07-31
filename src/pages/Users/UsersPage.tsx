@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useUsers, useDebounce } from '@/hooks'
+import { useSearchParams } from 'react-router-dom'
+import { useUsers } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
 import type { FilterFormData } from '@/components/features/UserFilters'
@@ -102,10 +103,18 @@ function UsersPageSkeleton() {
 
 function UsersPage() {
   const { data: users, isLoading, isError, refetch } = useUsers()
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<FilterFormData>({})
 
-  const debouncedSearch = useDebounce(searchQuery)
+  // Search is driven by the header field, which submits to ?q= so a filtered
+  // list stays shareable and survives a refresh.
+  const searchQuery = searchParams.get('q')?.trim() ?? ''
+
+  const clearSearch = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
 
   const organizations = useMemo(() => {
     if (!users) return []
@@ -115,8 +124,8 @@ function UsersPage() {
   const filteredUsers = useMemo(() => {
     if (!users) return []
     const afterFilters = applyFilters(users, filters)
-    return applySearch(afterFilters, debouncedSearch)
-  }, [users, filters, debouncedSearch])
+    return applySearch(afterFilters, searchQuery)
+  }, [users, filters, searchQuery])
 
   const stats = useMemo(() => {
     if (!users) return []
@@ -155,7 +164,8 @@ function UsersPage() {
     )
   }
 
-  const hasActiveFilters = Object.values(filters).some((v) => !!v)
+  const hasActiveFilters = Object.values(filters).some((value) => !!value)
+  const isNarrowed = hasActiveFilters || !!searchQuery
   const noResults = filteredUsers.length === 0
 
   return (
@@ -176,32 +186,21 @@ function UsersPage() {
       </div>
 
       <div className={styles.tableSection}>
-        <div className={styles.toolbar}>
-          <input
-            type="search"
-            placeholder="Search by name, email, or phone"
-            className={styles.searchInput}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search users"
-          />
-        </div>
-
         {noResults ? (
           <EmptyState
             title="No results found"
             description={
-              hasActiveFilters || debouncedSearch
+              isNarrowed
                 ? 'Try adjusting your search or filter criteria.'
                 : 'There are no users to display.'
             }
             action={
-              (hasActiveFilters || debouncedSearch) && (
+              isNarrowed && (
                 <Button
                   variant="outline"
                   onClick={() => {
                     setFilters({})
-                    setSearchQuery('')
+                    clearSearch()
                   }}
                 >
                   Clear Filters

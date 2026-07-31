@@ -47,6 +47,8 @@ $line-height-relaxed: 1.75;
 // Layout
 $sidebar-width: 283px;
 $header-height: 100px;
+// The search moves onto its own row below $breakpoint-mobile.
+$header-height-mobile: 124px;
 
 // Transitions
 $transition-fast: 150ms ease;

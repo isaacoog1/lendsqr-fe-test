@@ -11,14 +11,20 @@ vi.mock('@/services/users.service')
 
 const mockedGetAll = vi.mocked(usersService.getAll)
 
-function renderUsersPage() {
-  return renderWithProviders(<UsersPage />)
+function renderUsersPage(route = '/users') {
+  return renderWithProviders(<UsersPage />, { route })
 }
 
-/** Waits for the loading skeleton to be replaced by the loaded page. */
+/** Search matches on full name too, so distinct names keep tests unambiguous. */
+function namedUser(username: string, fullName: string) {
+  const user = buildUser({ username })
+  return { ...user, personalInfo: { ...user.personalInfo, fullName } }
+}
+
+/** Waits for the loading skeleton to be replaced by the loaded table. */
 async function waitForUsers() {
   await waitFor(() => {
-    expect(screen.getByLabelText('Search users')).toBeInTheDocument()
+    expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
   })
 }
 
@@ -55,7 +61,7 @@ describe('UsersPage', () => {
         expect(screen.getByText('Failed to load users')).toBeInTheDocument()
       })
       expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
-      expect(screen.queryByLabelText('Search users')).not.toBeInTheDocument()
+      expect(screen.queryByText('ORGANIZATION')).not.toBeInTheDocument()
     })
 
     it('refetches when Retry is pressed, and recovers', async () => {
@@ -91,12 +97,8 @@ describe('UsersPage', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('offers to clear filters when a search excludes every user', async () => {
-      const user = userEvent.setup()
-      renderUsersPage()
-      await waitForUsers()
-
-      await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
+    it('offers to clear filters when the query in the url excludes everyone', async () => {
+      renderUsersPage('/users?q=zzzznonexistent')
 
       await waitFor(() => {
         expect(screen.getByText('No results found')).toBeInTheDocument()
@@ -106,21 +108,50 @@ describe('UsersPage', () => {
       ).toBeInTheDocument()
     })
 
-    it('restores the table when the filters are cleared', async () => {
+    it('restores the table when the query is cleared', async () => {
       const user = userEvent.setup()
-      renderUsersPage()
-      await waitForUsers()
+      renderUsersPage('/users?q=zzzznonexistent')
 
-      await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
       await waitFor(() => {
         expect(screen.getByText('No results found')).toBeInTheDocument()
       })
 
       await user.click(screen.getByRole('button', { name: 'Clear Filters' }))
 
-      await waitFor(() => {
-        expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
-      })
+      await waitForUsers()
+    })
+  })
+
+  describe('search from the url', () => {
+    it('narrows the table to users matching the query', async () => {
+      mockedGetAll.mockResolvedValue([
+        namedUser('grace_effiom', 'Grace Effiom'),
+        namedUser('tosin_dokunmu', 'Tosin Dokunmu'),
+      ])
+      renderUsersPage('/users?q=grace')
+
+      await waitForUsers()
+      expect(screen.getByText('grace_effiom')).toBeInTheDocument()
+      expect(screen.queryByText('tosin_dokunmu')).not.toBeInTheDocument()
+    })
+
+    it('matches on email as well as username', async () => {
+      mockedGetAll.mockResolvedValue([
+        buildUser({ username: 'first', email: 'findme@lendsqr.com' }),
+        buildUser({ username: 'second', email: 'other@lendsqr.com' }),
+      ])
+      renderUsersPage('/users?q=findme')
+
+      await waitForUsers()
+      expect(screen.getByText('first')).toBeInTheDocument()
+      expect(screen.queryByText('second')).not.toBeInTheDocument()
+    })
+
+    it('ignores a blank query', async () => {
+      renderUsersPage('/users?q=%20%20')
+
+      await waitForUsers()
+      expect(screen.queryByText('No results found')).not.toBeInTheDocument()
     })
   })
 
@@ -133,11 +164,10 @@ describe('UsersPage', () => {
       expect(screen.getByText('ACTIVE USERS')).toBeInTheDocument()
     })
 
-    it('renders the search input and the column filter triggers', async () => {
+    it('renders the column filter triggers', async () => {
       renderUsersPage()
       await waitForUsers()
 
-      expect(screen.getByLabelText('Search users')).toBeInTheDocument()
       expect(
         screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
       ).toBeInTheDocument()

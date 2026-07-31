@@ -1,3 +1,5 @@
+import { type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Bell, Menu, Search, ChevronDown } from 'lucide-react'
 import { Avatar } from '@/components/ui'
 import styles from './Header.module.scss'
@@ -7,6 +9,18 @@ interface HeaderProps {
 }
 
 function Header({ onMenuClick }: HeaderProps) {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const activeQuery = searchParams.get('q') ?? ''
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const query = String(
+      new FormData(event.currentTarget).get('q') ?? '',
+    ).trim()
+    navigate(query ? `/users?q=${encodeURIComponent(query)}` : '/users')
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.left}>
@@ -22,17 +36,33 @@ function Header({ onMenuClick }: HeaderProps) {
           <img src="/logo.svg" alt="Lendsqr" className={styles.logoImage} />
         </div>
 
-        <div className={styles.searchWrapper}>
+        <form
+          className={styles.searchWrapper}
+          role="search"
+          onSubmit={handleSubmit}
+        >
+          {/*
+            Uncontrolled, keyed on the active query: the header outlives the
+            pages below it, so remounting is what resyncs the field when the
+            query is cleared from the users page or a nav link is followed.
+          */}
           <input
-            type="text"
+            key={activeQuery}
+            name="q"
+            type="search"
             placeholder="Search for anything"
             className={styles.searchInput}
-            aria-label="Search"
+            defaultValue={activeQuery}
+            aria-label="Search users"
           />
-          <button className={styles.searchButton} aria-label="Submit search">
+          <button
+            type="submit"
+            className={styles.searchButton}
+            aria-label="Search"
+          >
             <Search size={14} />
           </button>
-        </div>
+        </form>
       </div>
 
       <div className={styles.right}>

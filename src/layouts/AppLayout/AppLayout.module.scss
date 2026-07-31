@@ -18,8 +18,8 @@
   }
 
   @include respond-to(mobile) {
-    margin-top: 70px;
-    min-height: calc(100vh - 70px);
+    margin-top: $header-height-mobile;
+    min-height: calc(100vh - $header-height-mobile);
     padding: $spacing-md;
   }
 }
