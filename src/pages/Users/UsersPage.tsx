@@ -2,10 +2,7 @@ import { useMemo, useState } from 'react'
 import { useUsers, useDebounce } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
-import {
-  UserFilters,
-  type FilterFormData,
-} from '@/components/features/UserFilters'
+import type { FilterFormData } from '@/components/features/UserFilters'
 import {
   Skeleton,
   SkeletonGroup,
@@ -16,6 +13,22 @@ import {
 import { dashboardStats } from '@/config/dashboardStats'
 import type { User } from '@/types'
 import styles from './UsersPage.module.scss'
+
+/**
+ * `<input type="date">` yields a calendar date in the viewer's timezone, so the
+ * stored ISO timestamp has to be compared the same way. Formatting it as UTC
+ * shifts the day for anyone east of Greenwich who joined late in the evening.
+ */
+function isSameLocalDay(isoTimestamp: string, calendarDate: string): boolean {
+  const joined = new Date(isoTimestamp)
+  const [year, month, day] = calendarDate.split('-').map(Number)
+
+  return (
+    joined.getFullYear() === year &&
+    joined.getMonth() + 1 === month &&
+    joined.getDate() === day
+  )
+}
 
 function applyFilters(users: User[], filters: FilterFormData): User[] {
   return users.filter((user) => {
@@ -40,11 +53,11 @@ function applyFilters(users: User[], filters: FilterFormData): User[] {
     ) {
       return false
     }
-    if (filters.dateJoined) {
-      const userDate = new Date(user.dateJoined).toISOString().split('T')[0]
-      if (userDate !== filters.dateJoined) {
-        return false
-      }
+    if (
+      filters.dateJoined &&
+      !isSameLocalDay(user.dateJoined, filters.dateJoined)
+    ) {
+      return false
     }
     if (filters.status && user.status !== filters.status) {
       return false
@@ -91,7 +104,6 @@ function UsersPage() {
   const { data: users, isLoading, isError, refetch } = useUsers()
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<FilterFormData>({})
-  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const debouncedSearch = useDebounce(searchQuery)
 
@@ -165,33 +177,14 @@ function UsersPage() {
 
       <div className={styles.tableSection}>
         <div className={styles.toolbar}>
-          <div className={styles.searchWrapper}>
-            <input
-              type="text"
-              placeholder="Search by name, email, or phone"
-              className={styles.searchInput}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search users"
-            />
-          </div>
-          <div className={styles.filterWrapper}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltersOpen((prev) => !prev)}
-              aria-expanded={filtersOpen}
-            >
-              {hasActiveFilters ? 'Filters Active' : 'Filter'}
-            </Button>
-            <UserFilters
-              organizations={organizations}
-              isOpen={filtersOpen}
-              onClose={() => setFiltersOpen(false)}
-              onApply={(f) => setFilters(f)}
-              onReset={() => setFilters({})}
-            />
-          </div>
+          <input
+            type="search"
+            placeholder="Search by name, email, or phone"
+            className={styles.searchInput}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search users"
+          />
         </div>
 
         {noResults ? (
@@ -219,7 +212,12 @@ function UsersPage() {
         ) : (
           <UsersTable
             data={filteredUsers}
-            onFilterClick={() => setFiltersOpen(true)}
+            filters={{
+              organizations,
+              isActive: hasActiveFilters,
+              onApply: setFilters,
+              onReset: () => setFilters({}),
+            }}
           />
         )}
       </div>
