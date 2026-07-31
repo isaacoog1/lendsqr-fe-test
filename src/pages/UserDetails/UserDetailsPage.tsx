@@ -4,7 +4,14 @@ import { ArrowLeft } from 'lucide-react'
 import { getSelectedUser } from '@/utils'
 import { useUser } from '@/hooks'
 import { UserProfileHeader } from '@/components/features/UserProfileHeader'
-import { Button, ErrorState, Skeleton, SkeletonGroup } from '@/components/ui'
+import {
+  Button,
+  ErrorState,
+  Skeleton,
+  SkeletonGroup,
+  tabId,
+  tabPanelId,
+} from '@/components/ui'
 import {
   GeneralDetails,
   Documents,
@@ -14,6 +21,8 @@ import {
   AppAndSystem,
 } from './sections'
 import styles from './UserDetailsPage.module.scss'
+
+const TAB_ID_PREFIX = 'user-details'
 
 const TABS = [
   { key: 'general', label: 'General Details' },
@@ -28,13 +37,18 @@ function UserDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState('general')
 
-  const cachedUser = getSelectedUser()
+  // Read once per mount. In the render body this was a localStorage read plus
+  // a JSON.parse of a full user on every re-render, including each tab switch.
+  const [cachedUser] = useState(getSelectedUser)
   const shouldFetch = !cachedUser || cachedUser.id !== id
+
   const {
     data: fetchedUser,
     isLoading,
     isError,
-  } = useUser(shouldFetch ? id! : '')
+    error,
+    refetch,
+  } = useUser(id, { enabled: shouldFetch })
 
   const user = shouldFetch ? fetchedUser : cachedUser
 
@@ -55,21 +69,36 @@ function UserDetailsPage() {
   }
 
   if (isError || !user) {
+    // A missing record and an unreachable network are different problems: one
+    // is permanent, the other is worth retrying. Reporting both as "not found"
+    // tells the user not to retry at exactly the moment retrying would work.
+    const isMissing = !isError || error?.status === 404
+
     return (
       <div className={styles.page}>
         <Link to="/users" className={styles.backLink}>
           <ArrowLeft size={16} />
           <span>Back to Users</span>
         </Link>
-        <ErrorState
-          title="User not found"
-          message="The user you're looking for doesn't exist or has been removed."
-          action={
-            <Link to="/users">
-              <Button>Back to Users</Button>
-            </Link>
-          }
-        />
+        {isMissing ? (
+          <ErrorState
+            title="User not found"
+            message="The user you're looking for doesn't exist or has been removed."
+            action={
+              <Link to="/users">
+                <Button>Back to Users</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <ErrorState
+            title="Failed to load user"
+            message={
+              error?.message ?? "We couldn't fetch this user. Please try again."
+            }
+            action={<Button onClick={() => refetch()}>Retry</Button>}
+          />
+        )}
       </div>
     )
   }
@@ -98,9 +127,16 @@ function UserDetailsPage() {
         tabs={TABS}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        tabIdPrefix={TAB_ID_PREFIX}
       />
 
-      <div className={styles.content}>
+      <div
+        className={styles.content}
+        role="tabpanel"
+        id={tabPanelId(TAB_ID_PREFIX, activeTab)}
+        aria-labelledby={tabId(TAB_ID_PREFIX, activeTab)}
+        tabIndex={0}
+      >
         {activeTab === 'general' && <GeneralDetails user={user} />}
         {activeTab === 'documents' && <Documents />}
         {activeTab === 'bank' && <BankDetails user={user} />}

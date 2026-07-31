@@ -105,6 +105,64 @@ describe('UserDetailsPage', () => {
       })
       expect(screen.getAllByText('Back to Users').length).toBeGreaterThan(0)
     })
+
+    it('does not offer a retry for a record that does not exist', async () => {
+      renderUserDetails('nonexistent-id')
+
+      await waitFor(() => {
+        expect(screen.getByText('User not found')).toBeInTheDocument()
+      })
+      expect(
+        screen.queryByRole('button', { name: 'Retry' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('offers a retry when the request failed rather than the user missing', async () => {
+      mockedGetById.mockRejectedValue({
+        message: 'Please check your internet connection and try again.',
+        status: 0,
+      })
+      renderUserDetails()
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load user')).toBeInTheDocument()
+      })
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      expect(screen.queryByText('User not found')).not.toBeInTheDocument()
+    })
+
+    it('surfaces the connection message rather than a generic one', async () => {
+      mockedGetById.mockRejectedValue({
+        message: 'Please check your internet connection and try again.',
+        status: 0,
+      })
+      renderUserDetails()
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            'Please check your internet connection and try again.',
+          ),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('refetches when Retry is pressed, and recovers', async () => {
+      const user = userEvent.setup()
+      mockedGetById.mockRejectedValueOnce({ message: 'Network', status: 0 })
+      renderUserDetails()
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load user')).toBeInTheDocument()
+      })
+
+      mockedGetById.mockResolvedValue(mockUser)
+      await user.click(screen.getByRole('button', { name: 'Retry' }))
+
+      await waitFor(() => {
+        expect(screen.getByText('User Details')).toBeInTheDocument()
+      })
+    })
   })
 
   describe('tabs', () => {

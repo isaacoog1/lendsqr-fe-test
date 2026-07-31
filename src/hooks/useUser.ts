@@ -1,11 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
+import type { ApiError, User } from '@/types'
 
-export function useUser(id: string) {
-  return useQuery({
+interface UseUserOptions {
+  /** Skip the request when the caller already holds the user. */
+  enabled?: boolean
+}
+
+export function useUser(id: string | undefined, options: UseUserOptions = {}) {
+  const enabled = !!id && (options.enabled ?? true)
+
+  return useQuery<User, ApiError>({
     queryKey: [QUERY_KEYS.USER, id],
-    queryFn: () => usersService.getById(id),
-    enabled: !!id,
+    // Only reachable when `enabled` is true, which requires a defined id.
+    queryFn: () => usersService.getById(id!),
+    enabled,
   })
 }
