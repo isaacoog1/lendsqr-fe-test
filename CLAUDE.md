@@ -60,9 +60,14 @@ Chosen
 - React Hook Form
 - Zod
 - Lucide Icons
-- moment
 - clsx
-- Faker
+- Faker (devDependency — build-time only, never bundled)
+
+Reversed during development
+
+- moment — dropped for native `Intl.DateTimeFormat`. It cost ~70 kB for a
+  single `formatDate` call and is maintenance-only per its own maintainers.
+  `Intl` produces identical output for the format the design uses.
 
 Testing
 

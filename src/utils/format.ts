@@ -1,7 +1,10 @@
 /**
- * Dates and money are formatted with the platform's `Intl` APIs rather than a
- * date library. Moment is in maintenance-only status per its own maintainers,
- * and pulling ~70 kB into the bundle for a single call was not defensible.
+ * Dates are formatted with the platform's `Intl` API rather than a date
+ * library. Moment is in maintenance-only status per its own maintainers, and
+ * pulling ~70 kB into the bundle for a single call was not defensible.
+ *
+ * Money arrives from the endpoint already formatted, so there is no currency
+ * helper here — adding one that nothing calls would be dead code.
  */
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -13,12 +16,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour12: true,
 })
 
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  minimumFractionDigits: 2,
-})
-
 /** "May 15, 2020 10:00 AM" — the format used across the design. */
 export function formatDate(date: string | Date): string {
   const parsed = date instanceof Date ? date : new Date(date)
@@ -26,8 +23,4 @@ export function formatDate(date: string | Date): string {
 
   // Intl separates date and time with a comma; the design does not.
   return DATE_FORMATTER.format(parsed).replace(/,([^,]*)$/, '$1')
-}
-
-export function formatCurrency(amount: number): string {
-  return CURRENCY_FORMATTER.format(amount)
 }

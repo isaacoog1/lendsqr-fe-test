@@ -1,337 +1,313 @@
 # Lendsqr Frontend Assessment
 
-A production-quality frontend application built as part of the Lendsqr Frontend Engineer Assessment. The application demonstrates sound software engineering principles including maintainability, scalability, accessibility, and performance.
+An admin console for browsing 500 user records, built for the Lendsqr Frontend
+Engineer assessment. Four screens: Login, Dashboard, Users, and User details.
 
-## Tech Stack
+## Running it
 
-| Category | Technology |
-|----------|-----------|
-| Framework | React 19 |
-| Language | TypeScript |
-| Build Tool | Vite |
-| Styling | SCSS Modules |
-| Routing | React Router |
-| Server State | TanStack Query |
-| Tables | TanStack Table |
-| Forms | React Hook Form + Zod |
-| HTTP Client | Axios |
-| Icons | Lucide React |
-| Testing | Vitest + React Testing Library |
+```bash
+npm install
+npm run dev
+```
 
-## Project Structure
+Sign in with the demo account. It is also printed under the login button, so
+you do not have to come back here for it:
 
 ```
+admin@lendsqr.com
+Password123!
+```
+
+There is no auth backend. The service accepts that one pair and rejects
+everything else, which is what makes the 401 branch reachable — an error state
+you cannot trigger is an error state nobody has tested.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server |
+| `npm run build` | Type-check then build |
+| `npm run test` | Run the suite once |
+| `npm run test:watch` | Watch mode |
+| `npm run test:coverage` | Suite plus a coverage report |
+| `npm run lint` | ESLint |
+| `npm run format` / `format:check` | Prettier |
+| `npm run generate:users` | Regenerate the mock dataset |
+
+The four commands that gate a commit are `lint`, `format:check`, `test` and
+`build`. All four pass with zero warnings.
+
+## Stack
+
+React 19 with TypeScript and SCSS were required. The rest:
+
+| Choice | Why |
+|---|---|
+| Vite | Fast dev server, and the build output is easy to inspect |
+| React Router | Standard for an SPA with protected routes |
+| TanStack Query | Owns server state so no global store is needed |
+| TanStack Table | Sorting and pagination without hand-rolling a table |
+| React Hook Form + Zod | Schema-driven validation, one source of truth per form |
+| Axios | Interceptors for the auth header and error normalization |
+| Lucide | One icon set, tree-shakes cleanly |
+| Vitest + Testing Library | Shares Vite's config; queries by role rather than class |
+
+No Redux, no Zustand, no component library. Server state lives in React Query
+and UI state lives in the component that owns it, which between them covered
+everything here.
+
+Dates are formatted with `Intl.DateTimeFormat` rather than a date library. A
+library would cost roughly 70 kB for a single `formatDate` call, and `Intl`
+produces identical output for the format the design uses.
+
+## Layout of the code
+
+```
+scripts/           Build-time dataset generator (Node, not shipped)
+public/api/        The generated dataset, served as a static endpoint
 src/
-  api/            # Axios instance and HTTP client configuration
-  assets/         # Static assets (icons, images, fonts)
-  components/     # Reusable UI components
-  config/         # App configuration (env, query client)
-  constants/      # Query keys, storage keys, app constants
-  hooks/          # Custom React hooks
-  layouts/        # Page layout components (Auth, App)
-  pages/          # Route-level page components
-  routes/         # Centralized route definitions
-  services/       # API service functions
-  styles/         # Global SCSS (reset, variables, mixins, colors)
-  test/           # Test setup and utilities
-  types/          # Shared TypeScript interfaces
-  utils/          # Pure utility functions
+  api/             Axios instance, auth header, error normalization
+  components/
+    ui/            Presentational primitives — Button, Input, Table bits
+    features/      Tied to the domain — UsersTable, UserFilters, StatCard
+    layout/        Header and Sidebar
+  config/          Env, query client, sidebar and stat-card config
+  constants/       Query keys, storage keys, demo credentials
+  contexts/        Auth provider and hook
+  hooks/           React Query wrappers
+  layouts/         AuthLayout and AppLayout
+  pages/           One folder per route
+  routes/          Route table and the two guards
+  services/        Typed endpoint functions
+  styles/          Reset, typography, variables, mixins, colours
+  test/            Factories and the shared render helper
+  types/           Shared interfaces
+  utils/           Pure helpers
 ```
 
-## Architecture
-
-- **SCSS Modules** for component-scoped styling with shared abstracts (variables, mixins, functions)
-- **CSS Custom Properties** for theming (colors defined as CSS variables)
-- **TanStack Query** for all server state — no Redux or Zustand
-- **Feature isolation** — business logic stays in hooks/services, components stay presentational
-- **Centralized API client** with response normalization and error handling
-
-### Data Flow
+## Data flow
 
 ```
-Component → Hook (useUsers) → Service (usersService) → API Client (apiClient)
+Component → useUsers() → usersService.getAll() → apiClient → GET /api/users.json
 ```
 
-Each layer has one job:
+Each layer does one thing. The client owns transport concerns, services own
+endpoints and their types, hooks own caching and request state, and components
+render. No component imports Axios and no component touches `localStorage`
+directly.
 
-| Layer | Responsibility |
-|-------|---------------|
-| `api/client.ts` | Axios instance, auth header injection, error normalization |
-| `services/*.service.ts` | Typed endpoint functions — one per resource |
-| `hooks/use*.ts` | TanStack Query wrappers — caching, loading/error states |
-| Components | Render data, delegate mutations to hooks |
+### Why typed services instead of one generic request helper
 
-### Why This Over a Generic Request Helper
+A common alternative is a single `call(path, method, body)` used everywhere.
+Typed service functions won here for a few reasons. Return types are inferred
+per endpoint instead of cast at every call site. Every endpoint the app uses is
+visible in one file rather than scattered through components. Mocking one
+service function in a test is easier than mocking a wrapper that everything
+depends on. And renaming a method makes TypeScript point at every caller, where
+renaming a path string means grepping and hoping.
 
-A common alternative is a single `call(body, path, method)` function that handles dispatch, response parsing, and UI feedback in one place. We chose typed service files instead because:
+The cost is a few more lines per endpoint. At this size that is not a real
+cost.
 
-| Concern | Generic helper | Typed services |
-|---------|---------------|----------------|
-| Type safety | Requires manual casting at every call site | Return types inferred per endpoint |
-| Discoverability | Endpoint paths scattered across components | All endpoints visible in one service file |
-| UI feedback | Coupled to the data layer (toasts inside HTTP calls) | Separated — React Query lifecycle handles UI |
-| Testability | Must mock the generic wrapper everywhere | Mock individual service functions |
-| Refactoring | Rename a path → grep the entire codebase | Rename a method → TypeScript catches all callers |
+## The mock API
 
-The tradeoff is slightly more boilerplate per endpoint, but in a codebase of this size that cost is negligible compared to the safety and clarity gained.
+`npm run generate:users` runs a seeded Faker script that writes 500 records to
+`public/api/users.json`, and the app fetches that over HTTP through the Axios
+client. The seed is fixed, so regenerating produces an identical file and the
+dataset only shows up in a diff when the shape or the seed changes.
 
-## Design System
+Generating at build time rather than in the browser matters for two reasons.
+Faker is a data-generation library and has no business in a client bundle, so
+it stays a devDependency and never ships. And generating in-process means there
+is no request at all — the interceptors never run and the failure states have
+nothing to respond to.
 
-Reusable UI components live in `src/components/ui/`. Each component is self-contained with its own SCSS module and barrel export.
-
-| Component | Purpose |
-|-----------|---------|
-| Button | Primary, secondary, outline, danger variants with loading state |
-| Input | Text/password with label, error, and password toggle |
-| Select | Native select with custom styling and error state |
-| Card | Content container with padding variants |
-| Badge | Status indicators (active, inactive, pending, blacklisted) |
-| Avatar | User image with initials fallback |
-| Spinner | Loading indicator in three sizes |
-| Skeleton | Content placeholder with shimmer animation |
-| EmptyState | Zero-data messaging with optional action |
-| ErrorState | Error messaging with retry action slot |
-| Pagination | Page navigation with size selector |
-| Dropdown | Context menu triggered by any element |
-| Tabs | Horizontal tab bar with underline indicator |
-
-### SCSS Strategy
-
-- **Global**: Reset, typography, CSS custom properties (colors), variables, mixins
-- **Component**: SCSS Modules colocated with each component
-- **Theming**: Colors defined as CSS custom properties for easy overriding
-- **Abstracts**: Shared `$variables` and `@mixins` imported per module via `@use`
-
-## Application Shell
-
-### Layouts
-
-| Layout | Used For |
-|--------|----------|
-| `AuthLayout` | Login page — split-screen with illustration left, form right |
-| `AppLayout` | All authenticated pages — header + sidebar + main content |
-
-### Routing
-
-Routes are centralized in `src/routes/index.tsx`.
-
-| Path | Page | Protected |
-|------|------|-----------|
-| `/login` | Login | No |
-| `/dashboard` | Dashboard | Yes |
-| `/users` | Users list | Yes |
-| `/users/:id` | User details | Yes |
-| `*` | 404 | No |
-
-`/` redirects to `/dashboard`. Unauthenticated users accessing protected routes are redirected to `/login`.
-
-### Sidebar
-
-Sidebar navigation is config-driven (`src/config/sidebar.ts`). Groups: Customers, Businesses, Settings. Items rendered dynamically with Lucide icons. Active route indicated via left border highlight. Collapses to a drawer on tablet/mobile with overlay.
-
-## API & Data Layer
-
-### Request Flow
+Two environment variables point the app at whichever host is serving the file:
 
 ```
-Component → useUsers() hook → usersService.getAll() → Mock DB (500 Faker-generated users)
+VITE_API_BASE_URL=/api          # combined as ${BASE}${PATH}
+VITE_USERS_PATH=/users.json
 ```
 
-### Mock API
+The defaults hit the committed dataset on the app's own origin, so a fresh
+clone runs with no `.env` and no network. Set them in `.env.production` to move
+to an external mock host — a config change, not a code change.
 
-Instead of an external mock API, the data layer uses a seeded Faker.js generator (`src/mocks/generateUsers.ts`) that produces 500 deterministic user records. Services simulate network latency with configurable delays. This approach is self-contained (no external dependencies), reproducible (seeded), and easily swappable for a real API later.
+`getById` resolves against the collection rather than issuing
+`GET /users/:id`, because a static file host serves one URL. React Query dedupes
+it against the list query, so opening a user from the table costs no extra
+request. Against a backend with per-resource routes it is a one-line change.
 
-### Services
+## Handling 500 records
 
-| Service | Methods |
-|---------|---------|
-| `users.service.ts` | `getAll()`, `getById(id)` |
-| `auth.service.ts` | `login({ email, password })` |
+Pagination, 20 rows per page, with a page-size selector. No virtualization.
 
-### React Query Hooks
+At 500 records pagination already caps the DOM at 20 rows, and everything —
+sorting, filtering, search — stays instant. Virtualization would buy nothing
+measurable and cost a fair amount: measured row heights, scroll restoration,
+and a table that no longer works with browser find-in-page or keyboard tabbing.
+The point where it starts paying for itself is thousands of rows rendered at
+once, which is not this.
 
-| Hook | Purpose |
-|------|---------|
-| `useUsers()` | Fetches all users with caching |
-| `useUser(id)` | Fetches single user by ID |
-| `useLogin()` | Mutation for authentication |
+Filtering and search run over the full array before the table paginates, so
+they apply across all 500 rows and not just the visible page. The derived
+lists are memoized on the inputs that produce them.
 
-### Local Storage
+## States
 
-Helpers in `src/utils/storage.ts`:
+The design shows the happy path. The other three were designed here.
 
-- `saveSelectedUser(user)` — persists selected user for detail view
-- `getSelectedUser()` — retrieves persisted user
-- `clearSelectedUser()` — removes on logout/navigation
+**Loading.** Skeletons shaped like the content they replace, not a centred
+spinner. Skeletons are `aria-hidden`, so each group sits inside a labelled live
+region — otherwise the page announces nothing at all and simply appears empty
+until data lands.
 
-No component calls `localStorage` directly.
+**Empty.** Three different situations get three different messages. The
+endpoint returning nothing is not the same as a filter excluding everyone,
+which is not the same as a request failing. Only the middle one offers to clear
+filters, because that is the only one where clearing them helps.
 
-## Authentication
+**Error.** A failed list offers Retry, which refetches. On the details page a
+404 and a network failure are told apart: a missing record offers a way back to
+the list, an unreachable server offers Retry. Reporting both as "user not
+found" tells people not to retry at the exact moment retrying would work.
 
-### Flow
+An error boundary wraps the router as a last line of defence. Without one, any
+render-time throw unmounts the whole tree and leaves a blank page — not
+theoretical here, since the details page reads a user object straight out of
+`localStorage` and a stale record is valid JSON of the wrong shape.
 
-1. User submits email/password on login form
-2. `useLogin()` mutation calls `authService.login()` (simulates 1s delay)
-3. On success, `AuthContext.login(token)` stores token and sets `isAuthenticated = true`
-4. User is redirected to `/dashboard`
+## Routing
 
-### Route Protection
+| Path | Screen | Auth |
+|---|---|---|
+| `/login` | Login | Guests only |
+| `/dashboard` | Dashboard | Required |
+| `/users` | Users list | Required |
+| `/users/:id` | User details | Required |
+| anything else, signed in | Coming soon, inside the shell | Required |
+| anything else, signed out | 404 | — |
 
-- `ProtectedRoute` — reads `isAuthenticated` from AuthContext; redirects to `/login` if false
-- `GuestRoute` — prevents authenticated users from accessing `/login`; redirects to `/dashboard`
+The sidebar renders 22 navigation links and exactly two resolve to a real route.
+The other 20 render a placeholder **inside** the app layout, so the header and
+sidebar survive. Registered outside it, one click on the most prominent
+component in the app would strip the shell and leave no navigation to get back
+with.
 
-### Session Persistence
+Routes are lazy-loaded, so landing on `/login` does not pull down the users
+table, TanStack Table, the filter forms and all six detail sections first.
 
-Token stored in localStorage survives page refresh. `AuthProvider` initializes state by checking for existing token.
+`vercel.json` rewrites everything to `index.html`. Without it a refresh on
+`/users/:id` returns a host 404 before React Router ever boots.
 
-### Logout
+## Search and filtering
 
-Removes auth token and selected user from localStorage, resets `isAuthenticated` to false, redirects to login.
+Search lives in the header, where the design puts it, and submits to
+`/users?q=…`. Putting it in the URL means a filtered list can be linked to and
+survives a refresh, which local component state could not do.
 
-### Validation
+The column filter panel opens from the funnel icon in a column header, matching
+the design. It is rendered as a sibling of the table's scroll container rather
+than inside the `<th>`, because the table scrolls horizontally and an
+absolutely positioned panel inside `overflow-x: auto` gets clipped.
 
-Login form uses React Hook Form + Zod:
-- Email: must be valid email format
-- Password: required (non-empty)
-- Submit disabled while loading
-- Inline error messages per field
-- Server error displayed above form
+The date filter compares calendar days in local time. Formatting the stored
+timestamp as UTC shifted the day for anyone east of Greenwich who signed up
+late in the evening.
 
 ## Dashboard
 
-### Statistics Cards
+The Figma frame labelled "Dashboard" is the Users screen, so the brief leaves
+the actual overview undefined — one of the gaps it says it is watching for.
+Rather than ship two near-identical pages, `/dashboard` shows a status
+breakdown, the top organizations by user count, and the five most recent
+sign-ups.
 
-Four stat cards rendered from a config array (`dashboardStats.ts`). Each card computes its value from the users array — no hardcoded numbers. Cards are responsive (4-column grid → 2-column on tablet → 1-column on mobile).
+Every figure is counted from the same 500 records the table renders, so the two
+views cannot disagree. The bars are CSS widths; a charting library is not worth
+it for two lists of five rows.
 
-### Users Table
+## Persistence
 
-Built with TanStack Table. Features:
+Opening a user from the table or the dashboard writes that record to
+`localStorage` first. The details page reads it and renders immediately, and
+only fetches when the cached id does not match the URL. That is what makes a
+refresh on `/users/:id` instant.
 
-- **Columns**: Organization, Username, Email, Phone, Date Joined, Status, Actions
-- **Pagination**: 20 rows per page, page size selector (10/20/50/100)
-- **Sorting**: Click any column header to sort
-- **Status badges**: Color-coded (Active, Inactive, Pending, Blacklisted)
-- **Actions menu**: Dropdown with View Details, Blacklist User, Activate User
-- **Responsive**: Horizontal scroll on narrow viewports
+All of it goes through helpers in `src/utils/storage.ts`, which swallow both
+malformed JSON and a full quota. Logging out clears the token, the cached user,
+and the React Query cache — without the last one, signing in again inside the
+10-minute `gcTime` was served the previous session's data.
 
-### Loading State
+## Accessibility
 
-Skeleton cards and skeleton rows (not plain text spinners).
+Semantic elements first, ARIA only where the platform has no equivalent.
 
-### Error State
+Every row in the users table is reachable by keyboard, because the username
+cell is a real link rather than a click handler on a `<tr>`. Row action buttons
+are named after their user instead of announcing "button, collapsed" twenty
+times a page. Column headers carry `scope` and `aria-sort`.
 
-Full-page error with retry button that calls `refetch()`.
+The tabs implement the full ARIA pattern — a single tab stop, arrow keys, Home
+and End, and a panel that references its tab. Declaring `role="tab"` without
+that is worse than plain buttons, because a screen reader promises "tab, 1 of
+6" and then the arrow keys do nothing. The row menu moves focus into itself on
+open and returns focus to its trigger on close.
 
-### Pagination Decision
+The login fields keep their labels for assistive technology while hiding them
+visually, since the design is placeholder-only and placeholders disappear the
+moment someone types.
 
-20 items per page. No virtualization — with 500 records, pagination already limits rendered DOM to a manageable size. If asked: virtualization adds complexity (intersection observers, dynamic row heights) that isn't justified at this scale.
+`prefers-reduced-motion` disables animation globally.
 
-## Users Module
+## Responsive
 
-### Search
+| Width | Behaviour |
+|---|---|
+| ≤ 480px | Single column, search moves to its own row under the logo |
+| ≤ 768px | Sidebar becomes a drawer, panels stack |
+| ≤ 1024px | Stat cards drop to two columns |
+| above | Full layout, sidebar fixed |
 
-Client-side search against name, username, email, and phone number. Input is debounced by 300ms (`useDebounce` hook) to avoid re-filtering on every keystroke.
+All three are `max-width` queries through one `respond-to` mixin, so the
+breakpoints live in one place. Tables scroll horizontally inside their card
+rather than squeezing columns to nothing.
 
-### Filtering
+## Testing
 
-Filter panel with fields matching Figma: Organization, Username, Email, Phone, Date Joined, Status. Managed by React Hook Form + Zod. Filters are composable — multiple active filters narrow results together. Reset clears all fields and restores the full dataset.
+175 tests across 24 files. Roughly 91% of statements and 87% of branches.
 
-### Performance
+The suite mocks the service layer, which is the seam that makes failure paths
+testable at all. Without it there is no way to make a request fail, so there is
+no test that the error state renders or that Retry actually refetches — and
+those are exactly the cases the brief asks for.
 
-- `organizations` list — memoized (`useMemo`) since it's derived from all 500 users
-- `filteredUsers` — memoized, recomputes only when users/filters/search change
-- `stats` — memoized, avoids recalculating totals on every render
+Tests query by role and accessible name. That keeps them readable and means
+they fail when the accessibility of a component regresses, not just when its
+markup changes.
 
-### Empty States
+A shared factory builds `User` fixtures so a change to the type touches one
+file instead of three.
 
-Three distinct scenarios handled:
-1. API returns zero users — "No users to display"
-2. Search/filter yields zero results — "No results found" + "Clear Filters" action
-3. API error — Error message + Retry button
+## Bundle
 
-## User Details
+Initial JavaScript is **209 kB**, or **66 kB gzipped**, with each route loading
+its own chunk on demand.
 
-### Persistence Strategy
+Three choices keep it there: data generation happens at build time so Faker
+never reaches the browser, routes are code-split, and dates are formatted with
+`Intl` rather than a date library.
 
-When "View Details" is clicked, the user object is saved to localStorage via `saveSelectedUser()`. The details page reads from localStorage first. If the cached user's ID matches the URL param, it renders immediately (no network delay on page refresh). If mismatched or missing, it falls back to fetching via `useUser(id)`.
+## Things left undone
 
-### Tab Architecture
+The row actions — blacklist, activate, deactivate — do not mutate anything.
+There is no backend to mutate against, and faking it with optimistic updates
+would have been theatre.
 
-Six tabs: General Details, Documents, Bank Details, Loans, Savings, App and System. Each tab renders an isolated section component (`src/pages/UserDetails/sections/`). Only the active tab's content is in the DOM.
+Two of the six detail tabs, Documents and App and System, are permanently
+empty. That is deliberate: they demonstrate the empty state on a screen where
+it would otherwise never appear.
 
-### Reusable Components
-
-- **InfoGrid** — Renders label/value pairs in a responsive 5→3→2→1 column grid
-- **TierStars** — Accepts `tier` prop, renders filled/empty stars dynamically
-- **UserProfileHeader** — Avatar, name, account number, tier, balance, bank, tabs
-
-### Formatting & Missing Values
-
-All values pass through InfoGrid which displays `—` for undefined/null/empty values. Currency and dates use centralized formatters from `src/utils/format.ts`.
-
-### Error Handling
-
-- User not found in localStorage or API → "User not found" with link back to Users
-- Corrupted localStorage (invalid JSON) → `storage.get()` returns null gracefully
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Run linter
-npm run lint
-
-# Run tests
-npm run test
-
-# Build for production
-npm run build
-```
-
-## Responsive Design
-
-### Breakpoints
-
-| Breakpoint | Width | Behavior |
-|-----------|-------|----------|
-| Mobile | ≤ 480px | Single column, reduced header (70px), compact padding |
-| Tablet | ≤ 768px | Sidebar becomes drawer, 2-column grids |
-| Desktop | ≤ 1024px | Stat cards collapse to 2 columns |
-| Wide | > 1024px | Full layout with sidebar visible |
-
-### Key Responsive Decisions
-
-- **Sidebar**: Fixed on desktop, slide-in drawer with overlay on tablet/mobile
-- **Tables**: Horizontal scroll within container (min-width: 800px ensures readability)
-- **Stat cards**: 4 → 2 → 1 column grid
-- **User details**: InfoGrid adapts from 5 → 3 → 2 → 1 columns
-- **Login**: Left illustration panel hidden on tablet; logo shown above form instead
-
-### Accessibility
-
-- `prefers-reduced-motion`: All animations and transitions disabled
-- Focus-visible outlines on all interactive elements
-- Minimum 28px touch targets for pagination and controls
-- Semantic HTML: `<nav>`, `<main>`, `<header>`, `<aside>`, `role="tablist"`
-- ARIA labels on icon-only buttons, search, pagination
-
-### Micro-interactions
-
-- Button press: subtle scale (0.97) on active
-- Table rows: background highlight on hover, teal flash on active/click
-- Dropdown menus: fade + slide-up animation
-- Sidebar overlay: fade-in animation
-- Sidebar nav items: smooth border-color transition
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```
-VITE_API_BASE_URL=https://run.mocky.io/v3
-```
+The header's notification bell and the "Docs" link are decorative, as they are
+in the design.

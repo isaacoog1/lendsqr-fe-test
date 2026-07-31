@@ -17,6 +17,11 @@ const SEED = 42
 const RECORD_COUNT = 500
 const OUTPUT_PATH = join(import.meta.dirname, '..', 'public', 'api')
 
+// Join dates are generated relative to this instead of "now". The seed alone
+// is not enough for a reproducible file: faker.date.past() counts back from
+// the current clock, so every run produced a different set of timestamps.
+const REFERENCE_DATE = new Date('2026-06-01T00:00:00.000Z')
+
 const ORGANIZATIONS = [
   'Lendsqr',
   'Lendstar',
@@ -94,7 +99,9 @@ function generateUser(): User {
     username: faker.internet.username({ firstName, lastName }),
     email: faker.internet.email({ firstName, lastName }).toLowerCase(),
     phoneNumber: `0${faker.string.numeric(10)}`,
-    dateJoined: faker.date.past({ years: 3 }).toISOString(),
+    dateJoined: faker.date
+      .past({ years: 3, refDate: REFERENCE_DATE })
+      .toISOString(),
     status: faker.helpers.arrayElement(STATUSES),
 
     personalInfo: {

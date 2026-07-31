@@ -1,5 +1,5 @@
 export { cn } from './cn'
-export { formatDate, formatCurrency } from './format'
+export { formatDate } from './format'
 export {
   storage,
   saveSelectedUser,

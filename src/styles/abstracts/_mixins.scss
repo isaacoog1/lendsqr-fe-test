@@ -13,10 +13,6 @@
     @media (max-width: $breakpoint-desktop) {
       @content;
     }
-  } @else if $breakpoint == wide {
-    @media (max-width: $breakpoint-wide) {
-      @content;
-    }
   }
 }
 
