@@ -2,53 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuthProvider } from '@/contexts/AuthProvider'
 import { STORAGE_KEYS } from '@/constants'
-import type { User } from '@/types'
+import { buildUser } from '@/test/factories'
+import { usersService } from '@/services/users.service'
 import UserDetailsPage from './UserDetailsPage'
 
-const mockUser: User = {
+vi.mock('@/services/users.service')
+
+const mockUser = buildUser({
   id: 'user-123',
-  organization: 'Lendsqr',
   username: 'grace_effiom',
   email: 'grace@lendsqr.com',
-  phoneNumber: '07060780922',
-  dateJoined: '2020-05-15T10:00:00.000Z',
-  status: 'active',
-  personalInfo: {
-    fullName: 'Grace Effiom',
-    bvn: '07060780922',
-    gender: 'Female',
-    maritalStatus: 'Single',
-    children: 'None',
-    typeOfResidence: "Parent's Apartment",
-  },
-  educationAndEmployment: {
-    levelOfEducation: 'B.Sc',
-    employmentStatus: 'Employed',
-    sectorOfEmployment: 'FinTech',
-    durationOfEmployment: '2 years',
-    officeEmail: 'grace@lendsqr.com',
-    monthlyIncome: '₦200,000.00 - ₦400,000.00',
-    loanRepayment: '40,000',
-  },
-  socials: {
-    twitter: '@grace_effiom',
-    facebook: 'Grace Effiom',
-    instagram: '@grace_effiom',
-  },
-  guarantor: {
-    fullName: 'Debby Ogana',
-    phoneNumber: '07060780922',
-    emailAddress: 'debby@gmail.com',
-    relationship: 'Sister',
-  },
-  accountBalance: '₦200,000.00',
-  accountNumber: '9912345678',
-  bankName: 'Providus Bank',
   tier: 2,
-}
+})
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -78,6 +46,10 @@ describe('UserDetailsPage', () => {
   beforeEach(() => {
     localStorage.clear()
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
+    vi.mocked(usersService.getById).mockRejectedValue({
+      message: 'User not found',
+      status: 404,
+    })
   })
 
   it('renders user details from localStorage', () => {

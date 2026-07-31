@@ -2,10 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuthProvider } from '@/contexts/AuthProvider'
 import { STORAGE_KEYS } from '@/constants'
+import { usersService } from '@/services/users.service'
+import { buildUsers } from '@/test/factories'
 import UsersPage from './UsersPage'
+
+vi.mock('@/services/users.service')
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -31,6 +35,7 @@ function renderUsersPage() {
 describe('UsersPage', () => {
   beforeEach(() => {
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
+    vi.mocked(usersService.getAll).mockResolvedValue(buildUsers(25))
   })
 
   it('shows loading skeleton initially', () => {

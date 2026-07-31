@@ -6,49 +6,9 @@ import {
   clearSelectedUser,
 } from './storage'
 import { STORAGE_KEYS } from '@/constants'
-import type { User } from '@/types'
+import { buildUser } from '@/test/factories'
 
-const mockUser: User = {
-  id: '1',
-  organization: 'Lendsqr',
-  username: 'grace_effiom',
-  email: 'grace@lendsqr.com',
-  phoneNumber: '07060780922',
-  dateJoined: '2020-05-15T10:00:00.000Z',
-  status: 'active',
-  personalInfo: {
-    fullName: 'Grace Effiom',
-    bvn: '07060780922',
-    gender: 'Female',
-    maritalStatus: 'Single',
-    children: 'None',
-    typeOfResidence: "Parent's Apartment",
-  },
-  educationAndEmployment: {
-    levelOfEducation: 'B.Sc',
-    employmentStatus: 'Employed',
-    sectorOfEmployment: 'FinTech',
-    durationOfEmployment: '2 years',
-    officeEmail: 'grace@lendsqr.com',
-    monthlyIncome: '₦200,000.00 - ₦400,000.00',
-    loanRepayment: '40,000',
-  },
-  socials: {
-    twitter: '@grace_effiom',
-    facebook: 'Grace Effiom',
-    instagram: '@grace_effiom',
-  },
-  guarantor: {
-    fullName: 'Debby Ogana',
-    phoneNumber: '07060780922',
-    emailAddress: 'debby@gmail.com',
-    relationship: 'Sister',
-  },
-  accountBalance: '₦200,000.00',
-  accountNumber: '9912345678',
-  bankName: 'Providus Bank',
-  tier: 1,
-}
+const mockUser = buildUser({ id: '1', username: 'grace_effiom' })
 
 describe('storage', () => {
   beforeEach(() => {

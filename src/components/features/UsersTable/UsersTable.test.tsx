@@ -2,50 +2,21 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect } from 'vitest'
-import type { User } from '@/types'
+import { buildUser } from '@/test/factories'
 import UsersTable from './UsersTable'
 
-const mockUsers: User[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `user-${i}`,
-  organization: i % 2 === 0 ? 'Lendsqr' : 'Lendstar',
-  username: `user${i}`,
-  email: `user${i}@test.com`,
-  phoneNumber: `0700000000${i}`,
-  dateJoined: '2020-05-15T10:00:00.000Z',
-  status: (['active', 'inactive', 'pending', 'blacklisted'] as const)[i % 4],
-  personalInfo: {
-    fullName: `User ${i}`,
-    bvn: '12345678901',
-    gender: 'Male',
-    maritalStatus: 'Single',
-    children: 'None',
-    typeOfResidence: "Parent's Apartment",
-  },
-  educationAndEmployment: {
-    levelOfEducation: 'B.Sc',
-    employmentStatus: 'Employed',
-    sectorOfEmployment: 'FinTech',
-    durationOfEmployment: '2 years',
-    officeEmail: `user${i}@office.com`,
-    monthlyIncome: '₦200,000.00 - ₦400,000.00',
-    loanRepayment: '40,000',
-  },
-  socials: {
-    twitter: '@user',
-    facebook: 'User',
-    instagram: '@user',
-  },
-  guarantor: {
-    fullName: 'Guarantor',
-    phoneNumber: '07060780922',
-    emailAddress: 'guarantor@test.com',
-    relationship: 'Sister',
-  },
-  accountBalance: '₦200,000.00',
-  accountNumber: '9912345678',
-  bankName: 'Providus Bank',
-  tier: 1,
-}))
+const STATUSES = ['active', 'inactive', 'pending', 'blacklisted'] as const
+
+const mockUsers = Array.from({ length: 25 }, (_, i) =>
+  buildUser({
+    id: `user-${i}`,
+    organization: i % 2 === 0 ? 'Lendsqr' : 'Lendstar',
+    username: `user${i}`,
+    email: `user${i}@test.com`,
+    phoneNumber: `0700000000${i}`,
+    status: STATUSES[i % 4],
+  }),
+)
 
 function renderTable(users = mockUsers) {
   return render(

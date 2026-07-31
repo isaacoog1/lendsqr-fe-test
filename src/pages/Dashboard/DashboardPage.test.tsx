@@ -1,8 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { usersService } from '@/services/users.service'
+import { buildUsers } from '@/test/factories'
 import DashboardPage from './DashboardPage'
+
+vi.mock('@/services/users.service')
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -29,6 +33,7 @@ function renderDashboard() {
 describe('DashboardPage', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.mocked(usersService.getAll).mockResolvedValue(buildUsers(25))
   })
 
   it('shows loading skeleton initially', () => {
