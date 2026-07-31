@@ -6,7 +6,13 @@ import {
   UserFilters,
   type FilterFormData,
 } from '@/components/features/UserFilters'
-import { Skeleton, ErrorState, EmptyState, Button } from '@/components/ui'
+import {
+  Skeleton,
+  SkeletonGroup,
+  ErrorState,
+  EmptyState,
+  Button,
+} from '@/components/ui'
 import { dashboardStats } from '@/config/dashboardStats'
 import type { User } from '@/types'
 import styles from './UsersPage.module.scss'
@@ -61,7 +67,7 @@ function applySearch(users: User[], query: string): User[] {
 
 function UsersPageSkeleton() {
   return (
-    <div className={styles.page}>
+    <SkeletonGroup label="Loading users" className={styles.page}>
       <h1 className={styles.title}>Users</h1>
       <div className={styles.stats}>
         {Array.from({ length: 4 }).map((_, i) => (
@@ -77,7 +83,7 @@ function UsersPageSkeleton() {
           <Skeleton key={i} height="48px" />
         ))}
       </div>
-    </div>
+    </SkeletonGroup>
   )
 }
 

@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getSelectedUser } from '@/utils'
 import { useUser } from '@/hooks'
 import { UserProfileHeader } from '@/components/features/UserProfileHeader'
-import { Button, ErrorState, Skeleton } from '@/components/ui'
+import { Button, ErrorState, Skeleton, SkeletonGroup } from '@/components/ui'
 import {
   GeneralDetails,
   Documents,
@@ -40,7 +40,7 @@ function UserDetailsPage() {
 
   if (isLoading && shouldFetch) {
     return (
-      <div className={styles.page}>
+      <SkeletonGroup label="Loading user details" className={styles.page}>
         <Skeleton width="120px" height="16px" />
         <div className={styles.skeletonHeader}>
           <Skeleton variant="circular" width="100px" height="100px" />
@@ -50,7 +50,7 @@ function UserDetailsPage() {
           </div>
         </div>
         <Skeleton height="300px" />
-      </div>
+      </SkeletonGroup>
     )
   }
 

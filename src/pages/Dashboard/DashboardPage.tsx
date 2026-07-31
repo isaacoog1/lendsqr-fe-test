@@ -1,14 +1,14 @@
 import { useUsers } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
-import { Skeleton, Spinner, ErrorState } from '@/components/ui'
+import { Skeleton, SkeletonGroup, Spinner, ErrorState } from '@/components/ui'
 import { Button } from '@/components/ui'
 import { dashboardStats } from '@/config/dashboardStats'
 import styles from './DashboardPage.module.scss'
 
 function DashboardSkeleton() {
   return (
-    <div className={styles.page}>
+    <SkeletonGroup label="Loading users" className={styles.page}>
       <h1 className={styles.title}>Users</h1>
       <div className={styles.stats}>
         {Array.from({ length: 4 }).map((_, i) => (
@@ -24,7 +24,7 @@ function DashboardSkeleton() {
           <Skeleton key={i} height="48px" />
         ))}
       </div>
-    </div>
+    </SkeletonGroup>
   )
 }
 
