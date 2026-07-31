@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import { cn } from '@/utils'
 import styles from './Dropdown.module.scss'
 
@@ -25,11 +31,16 @@ function Dropdown({
   className,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -41,23 +52,54 @@ function Dropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
+  // Focus enters the menu on open so the keyboard lands somewhere useful.
   useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
+      menuRef.current?.querySelector('button')?.focus()
     }
-
-    return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen])
 
+  /** Closes and returns focus to the trigger, so the tab order is not lost. */
+  function close() {
+    setIsOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      close()
+      return
+    }
+
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+
+    const buttons = Array.from(
+      menuRef.current?.querySelectorAll('button') ?? [],
+    )
+    const currentIndex = buttons.indexOf(
+      document.activeElement as HTMLButtonElement,
+    )
+    if (currentIndex === -1) return
+
+    event.preventDefault()
+    const lastIndex = buttons.length - 1
+    const nextIndex =
+      event.key === 'ArrowDown'
+        ? currentIndex === lastIndex
+          ? 0
+          : currentIndex + 1
+        : currentIndex === 0
+          ? lastIndex
+          : currentIndex - 1
+
+    buttons[nextIndex].focus()
+  }
+
   return (
-    <div className={cn(styles.wrapper, className)} ref={ref}>
+    <div className={cn(styles.wrapper, className)} ref={wrapperRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.trigger}
         onClick={() => setIsOpen((prev) => !prev)}
@@ -69,15 +111,21 @@ function Dropdown({
       </button>
 
       {isOpen && (
-        <div className={cn(styles.menu, styles[align])} role="menu">
+        <div
+          ref={menuRef}
+          className={cn(styles.menu, styles[align])}
+          role="menu"
+          onKeyDown={handleMenuKeyDown}
+        >
           {items.map((item) => (
             <button
               key={item.label}
+              type="button"
               className={styles.item}
               role="menuitem"
               onClick={() => {
                 item.onClick()
-                setIsOpen(false)
+                close()
               }}
             >
               {item.icon && <span className={styles.icon}>{item.icon}</span>}

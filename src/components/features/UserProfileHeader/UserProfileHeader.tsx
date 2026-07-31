@@ -8,6 +8,8 @@ interface UserProfileHeaderProps {
   activeTab: string
   onTabChange: (tab: string) => void
   tabs: { key: string; label: string }[]
+  /** Shared with the page's tabpanel so the two can reference each other. */
+  tabIdPrefix?: string
 }
 
 function UserProfileHeader({
@@ -15,6 +17,7 @@ function UserProfileHeader({
   activeTab,
   onTabChange,
   tabs,
+  tabIdPrefix,
 }: UserProfileHeaderProps) {
   return (
     <div className={styles.container}>
@@ -42,7 +45,12 @@ function UserProfileHeader({
         </div>
       </div>
 
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={onTabChange} />
+      <Tabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={onTabChange}
+        idPrefix={tabIdPrefix}
+      />
     </div>
   )
 }
