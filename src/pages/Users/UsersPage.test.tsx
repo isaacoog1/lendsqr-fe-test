@@ -1,159 +1,175 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { AuthProvider } from '@/contexts/AuthProvider'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
 import { buildUsers } from '@/test/factories'
+import { renderWithProviders } from '@/test/renderWithProviders'
 import UsersPage from './UsersPage'
 
 vi.mock('@/services/users.service')
 
-function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  })
-}
+const mockedGetAll = vi.mocked(usersService.getAll)
 
 function renderUsersPage() {
-  const queryClient = createTestQueryClient()
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <AuthProvider>
-          <UsersPage />
-        </AuthProvider>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  )
+  return renderWithProviders(<UsersPage />)
+}
+
+/** Waits for the loading skeleton to be replaced by the loaded page. */
+async function waitForUsers() {
+  await waitFor(() => {
+    expect(screen.getByLabelText('Search users')).toBeInTheDocument()
+  })
 }
 
 describe('UsersPage', () => {
   beforeEach(() => {
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
-    vi.mocked(usersService.getAll).mockResolvedValue(buildUsers(25))
+    mockedGetAll.mockReset()
+    mockedGetAll.mockResolvedValue(buildUsers(25))
   })
 
-  it('shows loading skeleton initially', () => {
-    renderUsersPage()
-    expect(screen.getByText('Users')).toBeInTheDocument()
-  })
+  describe('loading state', () => {
+    it('announces the skeleton to assistive technology', () => {
+      renderUsersPage()
 
-  it('renders stat cards after loading', async () => {
-    renderUsersPage()
-    await waitFor(
-      () => {
-        expect(screen.getByText('USERS')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
-    expect(screen.getByText('ACTIVE USERS')).toBeInTheDocument()
-  })
+      expect(
+        screen.getByRole('status', { name: 'Loading users' }),
+      ).toBeInTheDocument()
+    })
 
-  it('renders search input', async () => {
-    renderUsersPage()
-    await waitFor(
-      () => {
-        expect(screen.getByLabelText('Search users')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
-  })
+    it('replaces the skeleton once the data arrives', async () => {
+      renderUsersPage()
 
-  it('renders filter button', async () => {
-    renderUsersPage()
-    await waitFor(
-      () => {
-        expect(
-          screen.getByRole('button', { name: 'Filter' }),
-        ).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
-  })
-
-  it('filters users by search query', async () => {
-    const user = userEvent.setup()
-    renderUsersPage()
-
-    await waitFor(
-      () => {
-        expect(screen.getByLabelText('Search users')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
-
-    await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
-
-    await waitFor(() => {
-      expect(screen.getByText('No results found')).toBeInTheDocument()
+      await waitForUsers()
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
   })
 
-  it('shows clear filters button when no results with active search', async () => {
-    const user = userEvent.setup()
-    renderUsersPage()
+  describe('error state', () => {
+    it('shows a retry affordance instead of an empty table', async () => {
+      mockedGetAll.mockRejectedValue({ message: 'Network Error', status: 0 })
+      renderUsersPage()
 
-    await waitFor(
-      () => {
-        expect(screen.getByLabelText('Search users')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load users')).toBeInTheDocument()
+      })
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      expect(screen.queryByLabelText('Search users')).not.toBeInTheDocument()
+    })
 
-    await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
+    it('refetches when Retry is pressed, and recovers', async () => {
+      const user = userEvent.setup()
+      mockedGetAll.mockRejectedValueOnce({
+        message: 'Network Error',
+        status: 0,
+      })
+      renderUsersPage()
 
-    await waitFor(() => {
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load users')).toBeInTheDocument()
+      })
+
+      mockedGetAll.mockResolvedValue(buildUsers(3))
+      await user.click(screen.getByRole('button', { name: 'Retry' }))
+
+      await waitForUsers()
+      expect(mockedGetAll).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('empty state', () => {
+    it('explains that there is no data when the endpoint returns none', async () => {
+      mockedGetAll.mockResolvedValue([])
+      renderUsersPage()
+
+      await waitFor(() => {
+        expect(screen.getByText('No users found')).toBeInTheDocument()
+      })
+      expect(
+        screen.queryByRole('button', { name: 'Clear Filters' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('offers to clear filters when a search excludes every user', async () => {
+      const user = userEvent.setup()
+      renderUsersPage()
+      await waitForUsers()
+
+      await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
+
+      await waitFor(() => {
+        expect(screen.getByText('No results found')).toBeInTheDocument()
+      })
       expect(
         screen.getByRole('button', { name: 'Clear Filters' }),
       ).toBeInTheDocument()
     })
-  })
 
-  it('opens filter panel when filter button is clicked', async () => {
-    const user = userEvent.setup()
-    renderUsersPage()
+    it('restores the table when the filters are cleared', async () => {
+      const user = userEvent.setup()
+      renderUsersPage()
+      await waitForUsers()
 
-    await waitFor(
-      () => {
-        expect(
-          screen.getByRole('button', { name: 'Filter' }),
-        ).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
+      await user.type(screen.getByLabelText('Search users'), 'zzzznonexistent')
+      await waitFor(() => {
+        expect(screen.getByText('No results found')).toBeInTheDocument()
+      })
 
-    await user.click(screen.getByRole('button', { name: 'Filter' }))
-    expect(screen.getByLabelText('Organization')).toBeInTheDocument()
-    expect(screen.getByLabelText('Username')).toBeInTheDocument()
-  })
+      await user.click(screen.getByRole('button', { name: 'Clear Filters' }))
 
-  it('persists selected user to localStorage on View Details', async () => {
-    const user = userEvent.setup()
-    renderUsersPage()
-
-    await waitFor(
-      () => {
+      await waitFor(() => {
         expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
+      })
+    })
+  })
 
-    const actionButtons = screen.getAllByRole('button', { name: '' })
-    await user.click(actionButtons[0])
+  describe('loaded state', () => {
+    it('renders stat cards', async () => {
+      renderUsersPage()
+      await waitForUsers()
 
-    await waitFor(() => {
-      expect(screen.getByText('View Details')).toBeInTheDocument()
+      expect(screen.getByText('USERS')).toBeInTheDocument()
+      expect(screen.getByText('ACTIVE USERS')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('View Details'))
+    it('renders the search input and filter button', async () => {
+      renderUsersPage()
+      await waitForUsers()
 
-    const stored = localStorage.getItem(STORAGE_KEYS.SELECTED_USER)
-    expect(stored).not.toBeNull()
-    expect(JSON.parse(stored!)).toHaveProperty('id')
+      expect(screen.getByLabelText('Search users')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+    })
+
+    it('opens the filter panel when the filter button is clicked', async () => {
+      const user = userEvent.setup()
+      renderUsersPage()
+      await waitForUsers()
+
+      await user.click(screen.getByRole('button', { name: 'Filter' }))
+
+      expect(screen.getByLabelText('Organization')).toBeInTheDocument()
+      expect(screen.getByLabelText('Username')).toBeInTheDocument()
+    })
+
+    it('persists the chosen user to localStorage on View Details', async () => {
+      const user = userEvent.setup()
+      const [firstUser] = buildUsers(1)
+      mockedGetAll.mockResolvedValue([firstUser])
+      renderUsersPage()
+      await waitForUsers()
+
+      const actionButtons = screen.getAllByRole('button', { name: '' })
+      await user.click(actionButtons[0])
+
+      await waitFor(() => {
+        expect(screen.getByText('View Details')).toBeInTheDocument()
+      })
+      await user.click(screen.getByText('View Details'))
+
+      const stored = localStorage.getItem(STORAGE_KEYS.SELECTED_USER)
+      expect(stored).not.toBeNull()
+      expect(JSON.parse(stored!).id).toBe(firstUser.id)
+    })
   })
 })

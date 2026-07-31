@@ -1,15 +1,16 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
+import { Routes, Route } from 'react-router-dom'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { AuthProvider } from '@/contexts/AuthProvider'
 import { STORAGE_KEYS } from '@/constants'
 import { buildUser } from '@/test/factories'
 import { usersService } from '@/services/users.service'
+import { renderWithProviders } from '@/test/renderWithProviders'
 import UserDetailsPage from './UserDetailsPage'
 
 vi.mock('@/services/users.service')
+
+const mockedGetById = vi.mocked(usersService.getById)
 
 const mockUser = buildUser({
   id: 'user-123',
@@ -18,120 +19,144 @@ const mockUser = buildUser({
   tier: 2,
 })
 
-function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  })
+function renderUserDetails(userId = 'user-123') {
+  return renderWithProviders(
+    <Routes>
+      <Route path="/users/:id" element={<UserDetailsPage />} />
+      <Route path="/users" element={<p>Users List</p>} />
+    </Routes>,
+    { route: `/users/${userId}` },
+  )
 }
 
-function renderUserDetails(userId = 'user-123') {
-  const queryClient = createTestQueryClient()
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/users/${userId}`]}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/users/:id" element={<UserDetailsPage />} />
-            <Route path="/users" element={<p>Users List</p>} />
-          </Routes>
-        </AuthProvider>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  )
+/** Seeds the cache the users table writes to before navigating. */
+function cacheSelectedUser() {
+  localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
 }
 
 describe('UserDetailsPage', () => {
   beforeEach(() => {
     localStorage.clear()
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
-    vi.mocked(usersService.getById).mockRejectedValue({
+    mockedGetById.mockReset()
+    mockedGetById.mockRejectedValue({
       message: 'User not found',
       status: 404,
     })
   })
 
-  it('renders user details from localStorage', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
+  describe('from the local cache', () => {
+    it('renders immediately without a request', () => {
+      cacheSelectedUser()
+      renderUserDetails()
 
-    expect(screen.getByText('User Details')).toBeInTheDocument()
-    expect(screen.getAllByText('Grace Effiom').length).toBeGreaterThan(0)
-    expect(screen.getByText('₦200,000.00')).toBeInTheDocument()
+      expect(screen.getByText('User Details')).toBeInTheDocument()
+      expect(screen.getAllByText('Grace Effiom').length).toBeGreaterThan(0)
+      expect(mockedGetById).not.toHaveBeenCalled()
+    })
+
+    it('renders the account balance and tier', () => {
+      cacheSelectedUser()
+      renderUserDetails()
+
+      expect(screen.getByText('₦200,000.00')).toBeInTheDocument()
+      expect(screen.getByLabelText('Tier 2 of 3')).toBeInTheDocument()
+    })
+
+    it('ignores a cached user whose id does not match the route', async () => {
+      localStorage.setItem(
+        STORAGE_KEYS.SELECTED_USER,
+        JSON.stringify(buildUser({ id: 'someone-else' })),
+      )
+      mockedGetById.mockResolvedValue(mockUser)
+      renderUserDetails('user-123')
+
+      await waitFor(() => {
+        expect(mockedGetById).toHaveBeenCalledWith('user-123')
+      })
+    })
   })
 
-  it('renders back to users link', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
+  describe('from the endpoint', () => {
+    it('shows the loading skeleton while fetching', () => {
+      mockedGetById.mockReturnValue(new Promise(() => {}))
+      renderUserDetails()
 
-    expect(screen.getByText('Back to Users')).toBeInTheDocument()
-  })
+      expect(
+        screen.getByRole('status', { name: 'Loading user details' }),
+      ).toBeInTheDocument()
+    })
 
-  it('renders profile tabs', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
+    it('renders the fetched user when nothing is cached', async () => {
+      mockedGetById.mockResolvedValue(mockUser)
+      renderUserDetails()
 
-    expect(
-      screen.getByRole('tab', { name: 'General Details' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Documents' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('tab', { name: 'Bank Details' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Loans' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Savings' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('tab', { name: 'App and System' }),
-    ).toBeInTheDocument()
-  })
+      await waitFor(() => {
+        expect(screen.getByText('User Details')).toBeInTheDocument()
+      })
+      expect(screen.getAllByText('Grace Effiom').length).toBeGreaterThan(0)
+    })
 
-  it('renders general details by default', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
+    it('shows an error state when the user does not exist', async () => {
+      renderUserDetails('nonexistent-id')
 
-    expect(screen.getByText('Personal Information')).toBeInTheDocument()
-    expect(screen.getByText('Education and Employment')).toBeInTheDocument()
-    expect(screen.getByText('Socials')).toBeInTheDocument()
-    expect(screen.getByText('Guarantor')).toBeInTheDocument()
-  })
-
-  it('switches tabs correctly', async () => {
-    const user = userEvent.setup()
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
-
-    await user.click(screen.getByRole('tab', { name: 'Bank Details' }))
-    expect(screen.getByText('Bank Information')).toBeInTheDocument()
-  })
-
-  it('renders tier stars', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
-
-    expect(screen.getByLabelText('Tier 2 of 3')).toBeInTheDocument()
-  })
-
-  it('shows error state when user not found', async () => {
-    renderUserDetails('nonexistent-id')
-
-    await waitFor(
-      () => {
+      await waitFor(() => {
         expect(screen.getByText('User not found')).toBeInTheDocument()
-      },
-      { timeout: 3000 },
-    )
+      })
+      expect(screen.getAllByText('Back to Users').length).toBeGreaterThan(0)
+    })
   })
 
-  it('renders blacklist and activate buttons', () => {
-    localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
-    renderUserDetails()
+  describe('tabs', () => {
+    beforeEach(cacheSelectedUser)
 
-    expect(
-      screen.getByRole('button', { name: 'BLACKLIST USER' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'ACTIVATE USER' }),
-    ).toBeInTheDocument()
+    it('renders every section tab', () => {
+      renderUserDetails()
+
+      const labels = [
+        'General Details',
+        'Documents',
+        'Bank Details',
+        'Loans',
+        'Savings',
+        'App and System',
+      ]
+      for (const label of labels) {
+        expect(screen.getByRole('tab', { name: label })).toBeInTheDocument()
+      }
+    })
+
+    it('renders general details by default', () => {
+      renderUserDetails()
+
+      expect(screen.getByText('Personal Information')).toBeInTheDocument()
+      expect(screen.getByText('Education and Employment')).toBeInTheDocument()
+      expect(screen.getByText('Socials')).toBeInTheDocument()
+      expect(screen.getByText('Guarantor')).toBeInTheDocument()
+    })
+
+    it('swaps the panel when another tab is selected', async () => {
+      const user = userEvent.setup()
+      renderUserDetails()
+
+      await user.click(screen.getByRole('tab', { name: 'Bank Details' }))
+
+      expect(screen.getByText('Bank Information')).toBeInTheDocument()
+      expect(screen.queryByText('Personal Information')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('actions', () => {
+    it('renders blacklist and activate buttons', () => {
+      cacheSelectedUser()
+      renderUserDetails()
+
+      expect(
+        screen.getByRole('button', { name: 'BLACKLIST USER' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'ACTIVATE USER' }),
+      ).toBeInTheDocument()
+    })
   })
 })
