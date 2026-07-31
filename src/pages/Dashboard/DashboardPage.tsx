@@ -3,7 +3,7 @@ import { StatCard } from '@/components/features/StatCard'
 import { UsersTable } from '@/components/features/UsersTable'
 import { Skeleton, Spinner, ErrorState } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { dashboardStats } from './dashboardStats'
+import { dashboardStats } from '@/config/dashboardStats'
 import styles from './DashboardPage.module.scss'
 
 function DashboardSkeleton() {

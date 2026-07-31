@@ -7,7 +7,7 @@ import {
   type FilterFormData,
 } from '@/components/features/UserFilters'
 import { Skeleton, ErrorState, EmptyState, Button } from '@/components/ui'
-import { dashboardStats } from '@/pages/Dashboard/dashboardStats'
+import { dashboardStats } from '@/config/dashboardStats'
 import type { User } from '@/types'
 import styles from './UsersPage.module.scss'
 
