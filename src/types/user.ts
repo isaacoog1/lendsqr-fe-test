@@ -47,4 +47,7 @@ export interface User {
   accountNumber: string
   bankName: string
   tier: number
+
+  hasLoan: boolean
+  hasSavings: boolean
 }

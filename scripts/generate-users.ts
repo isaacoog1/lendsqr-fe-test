@@ -1,5 +1,21 @@
+/**
+ * Generates the mock dataset served by the users endpoint.
+ *
+ * Run with `npm run generate:users`. The output is committed so that the app,
+ * its tests and a fresh clone all work with no network and no setup. Faker is a
+ * devDependency and this script never reaches the browser bundle.
+ *
+ * The seed is fixed, so regenerating produces a byte-identical file — a change
+ * to the dataset only ever appears in a diff when the shape or seed changes.
+ */
 import { faker } from '@faker-js/faker'
-import type { User, UserStatus } from '@/types'
+import { writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import type { User } from '../src/types/user.ts'
+
+const SEED = 42
+const RECORD_COUNT = 500
+const OUTPUT_PATH = join(import.meta.dirname, '..', 'public', 'api')
 
 const ORGANIZATIONS = [
   'Lendsqr',
@@ -14,7 +30,12 @@ const ORGANIZATIONS = [
   'FairMoney',
 ]
 
-const STATUSES: UserStatus[] = ['active', 'inactive', 'pending', 'blacklisted']
+const STATUSES: User['status'][] = [
+  'active',
+  'inactive',
+  'pending',
+  'blacklisted',
+]
 
 const EDUCATION_LEVELS = ['B.Sc', 'M.Sc', 'PhD', 'HND', 'OND', 'SSCE']
 
@@ -51,6 +72,15 @@ const RESIDENCES = [
   'Personal Apartment',
   'Rented Apartment',
   'Shared Apartment',
+]
+
+const BANKS = [
+  'Providus Bank',
+  'GTBank',
+  'First Bank',
+  'Access Bank',
+  'UBA',
+  'Zenith Bank',
 ]
 
 function generateUser(): User {
@@ -108,19 +138,25 @@ function generateUser(): User {
 
     accountBalance: `₦${faker.number.int({ min: 50000, max: 500000 }).toLocaleString()}.00`,
     accountNumber: faker.string.numeric(10),
-    bankName: faker.helpers.arrayElement([
-      'Providus Bank',
-      'GTBank',
-      'First Bank',
-      'Access Bank',
-      'UBA',
-      'Zenith Bank',
-    ]),
+    bankName: faker.helpers.arrayElement(BANKS),
     tier: faker.helpers.arrayElement([1, 2, 3]),
+
+    hasLoan: faker.datatype.boolean({ probability: 0.35 }),
+    hasSavings: faker.datatype.boolean({ probability: 0.55 }),
   }
 }
 
-export function generateUsers(count = 500): User[] {
-  faker.seed(42)
-  return Array.from({ length: count }, generateUser)
-}
+faker.seed(SEED)
+const users = Array.from({ length: RECORD_COUNT }, generateUser)
+
+mkdirSync(OUTPUT_PATH, { recursive: true })
+writeFileSync(
+  join(OUTPUT_PATH, 'users.json'),
+  `${JSON.stringify(users, null, 2)}\n`,
+)
+
+console.log(
+  `Generated ${users.length} users → public/api/users.json`,
+  `\n  with loans:   ${users.filter((user) => user.hasLoan).length}`,
+  `\n  with savings: ${users.filter((user) => user.hasSavings).length}`,
+)
