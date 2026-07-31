@@ -55,8 +55,15 @@ function LoginPage() {
           </div>
         )}
 
+        {/*
+          The design shows placeholder-only fields. Placeholders disappear on
+          typing and are not a reliable accessible name, so the labels are
+          present but visually hidden.
+        */}
         <Input
           type="email"
+          label="Email"
+          hideLabel
           placeholder="Email"
           autoComplete="email"
           error={errors.email?.message}
@@ -65,6 +72,8 @@ function LoginPage() {
 
         <Input
           type="password"
+          label="Password"
+          hideLabel
           placeholder="Password"
           autoComplete="current-password"
           error={errors.password?.message}

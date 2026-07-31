@@ -1,4 +1,5 @@
 @use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
 
 .wrapper {
   display: flex;
@@ -13,6 +14,10 @@
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+.labelHidden {
+  @include visually-hidden;
 }
 
 .inputContainer {

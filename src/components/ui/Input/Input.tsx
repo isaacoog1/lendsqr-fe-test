@@ -1,22 +1,35 @@
-import { forwardRef, useState, type InputHTMLAttributes } from 'react'
+import { forwardRef, useId, useState, type InputHTMLAttributes } from 'react'
 import { cn } from '@/utils'
 import styles from './Input.module.scss'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
+  /** Keeps the label for assistive technology while hiding it visually. */
+  hideLabel?: boolean
   error?: string
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, type = 'text', className, id, ...props }, ref) => {
+  (
+    { label, hideLabel, error, type = 'text', className, id, ...props },
+    ref,
+  ) => {
     const [showPassword, setShowPassword] = useState(false)
     const isPassword = type === 'password'
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
+    // Falls back to a generated id: deriving it from the label alone left
+    // unlabelled fields sharing `id="undefined-error"`, so two invalid inputs
+    // pointed their aria-describedby at the same element.
+    const generatedId = useId()
+    const inputId = id ?? generatedId
+    const errorId = `${inputId}-error`
 
     return (
       <div className={cn(styles.wrapper, className)}>
         {label && (
-          <label htmlFor={inputId} className={styles.label}>
+          <label
+            htmlFor={inputId}
+            className={cn(styles.label, hideLabel && styles.labelHidden)}
+          >
             {label}
           </label>
         )}
@@ -27,7 +40,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={isPassword && showPassword ? 'text' : type}
             className={cn(styles.input, error && styles.inputError)}
             aria-invalid={!!error}
-            aria-describedby={error ? `${inputId}-error` : undefined}
+            aria-describedby={error ? errorId : undefined}
             {...props}
           />
           {isPassword && (
@@ -42,7 +55,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <span id={`${inputId}-error`} className={styles.error} role="alert">
+          <span id={errorId} className={styles.error} role="alert">
             {error}
           </span>
         )}
