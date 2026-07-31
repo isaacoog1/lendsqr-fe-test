@@ -1,3 +1,6 @@
+import { DEMO_CREDENTIALS } from '@/constants'
+import type { ApiError } from '@/types'
+
 interface LoginPayload {
   email: string
   password: string
@@ -7,18 +10,26 @@ interface LoginResponse {
   token: string
 }
 
-function delay(ms = 1000): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
+/**
+ * There is no auth backend for this assessment, so login is validated against
+ * a single demo account documented in the README. Accepting any non-empty
+ * input would leave the 401 path unreachable — and an error state that cannot
+ * be triggered is an error state that cannot be trusted.
+ */
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
-    await delay()
+    const emailMatches =
+      payload.email.trim().toLowerCase() === DEMO_CREDENTIALS.email
+    const passwordMatches = payload.password === DEMO_CREDENTIALS.password
 
-    if (payload.email && payload.password) {
-      return { token: 'mock-jwt-token-' + Date.now() }
+    if (!emailMatches || !passwordMatches) {
+      const unauthorized: ApiError = {
+        message: 'Incorrect email or password.',
+        status: 401,
+      }
+      throw unauthorized
     }
 
-    throw { message: 'Invalid credentials', status: 401 }
+    return { token: `demo-token-${Date.now()}` }
   },
 }

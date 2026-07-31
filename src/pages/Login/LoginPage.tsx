@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { DEMO_CREDENTIALS } from '@/constants'
 import { useAuth } from '@/contexts/useAuth'
 import { useLogin } from '@/hooks'
 import { Input } from '@/components/ui'
@@ -82,6 +83,11 @@ function LoginPage() {
         >
           LOG IN
         </Button>
+
+        <p className={styles.demoHint}>
+          Demo account — <code>{DEMO_CREDENTIALS.email}</code> /{' '}
+          <code>{DEMO_CREDENTIALS.password}</code>
+        </p>
       </form>
     </div>
   )

@@ -60,3 +60,19 @@
   width: 100%;
   margin-top: $spacing-sm;
 }
+
+// Not in the Figma. Added so a reviewer can sign in without reading the README
+// — there is no sign-up flow behind this screen.
+.demoHint {
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  text-align: center;
+
+  code {
+    font-family: inherit;
+    font-weight: $font-weight-semibold;
+    color: var(--color-text-primary);
+  }
+}
