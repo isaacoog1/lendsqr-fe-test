@@ -7,10 +7,21 @@
   gap: $spacing-xl;
 }
 
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
 .title {
   font-size: $font-size-2xl;
   font-weight: $font-weight-medium;
   color: var(--color-text-primary);
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
 }
 
 .stats {
@@ -27,6 +38,16 @@
   }
 }
 
+.panels {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-lg;
+
+  @include respond-to(tablet) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .skeletonCard {
   display: flex;
   flex-direction: column;
@@ -35,22 +56,4 @@
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: $radius-sm;
-}
-
-.skeletonTable {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  padding: $spacing-lg;
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: $radius-sm;
-}
-
-.empty {
-  @include flex-center;
-  flex-direction: column;
-  gap: $spacing-md;
-  padding: $spacing-3xl;
-  color: var(--color-text-secondary);
 }

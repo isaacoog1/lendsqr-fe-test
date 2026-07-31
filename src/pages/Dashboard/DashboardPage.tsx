@@ -1,29 +1,34 @@
 import { useUsers } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
-import { UsersTable } from '@/components/features/UsersTable'
-import { Skeleton, SkeletonGroup, Spinner, ErrorState } from '@/components/ui'
-import { Button } from '@/components/ui'
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  SkeletonGroup,
+} from '@/components/ui'
 import { dashboardStats } from '@/config/dashboardStats'
+import { StatusBreakdown, TopOrganizations, RecentUsers } from './sections'
 import styles from './DashboardPage.module.scss'
 
 function DashboardSkeleton() {
   return (
-    <SkeletonGroup label="Loading users" className={styles.page}>
-      <h1 className={styles.title}>Users</h1>
+    <SkeletonGroup label="Loading dashboard" className={styles.page}>
+      <Skeleton width="180px" height="28px" />
       <div className={styles.stats}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={styles.skeletonCard}>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className={styles.skeletonCard}>
             <Skeleton variant="circular" width="40px" height="40px" />
             <Skeleton width="80px" height="12px" />
             <Skeleton width="60px" height="24px" />
           </div>
         ))}
       </div>
-      <div className={styles.skeletonTable}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} height="48px" />
-        ))}
+      <div className={styles.panels}>
+        <Skeleton height="260px" />
+        <Skeleton height="260px" />
       </div>
+      <Skeleton height="280px" />
     </SkeletonGroup>
   )
 }
@@ -38,7 +43,7 @@ function DashboardPage() {
   if (isError) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>Users</h1>
+        <h1 className={styles.title}>Dashboard</h1>
         <ErrorState
           title="Failed to load users"
           message="We couldn't fetch the user data. Please try again."
@@ -51,18 +56,24 @@ function DashboardPage() {
   if (!users || users.length === 0) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>Users</h1>
-        <div className={styles.empty}>
-          <Spinner size="lg" />
-          <p>No users found.</p>
-        </div>
+        <h1 className={styles.title}>Dashboard</h1>
+        <EmptyState
+          title="No users found"
+          description="Once users are onboarded their activity will appear here."
+        />
       </div>
     )
   }
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Users</h1>
+      <header className={styles.heading}>
+        <h1 className={styles.title}>Dashboard</h1>
+        <p className={styles.subtitle}>
+          An overview of {users.length.toLocaleString()} users across the
+          platform.
+        </p>
+      </header>
 
       <div className={styles.stats}>
         {dashboardStats.map((stat) => (
@@ -77,7 +88,12 @@ function DashboardPage() {
         ))}
       </div>
 
-      <UsersTable data={users} />
+      <div className={styles.panels}>
+        <StatusBreakdown users={users} />
+        <TopOrganizations users={users} />
+      </div>
+
+      <RecentUsers users={users} />
     </div>
   )
 }

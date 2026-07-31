@@ -1,6 +1,7 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
 import { buildUser, buildUsers } from '@/test/factories'
 import { renderWithProviders } from '@/test/renderWithProviders'
@@ -11,7 +12,20 @@ vi.mock('@/services/users.service')
 const mockedGetAll = vi.mocked(usersService.getAll)
 
 function renderDashboard() {
-  return renderWithProviders(<DashboardPage />)
+  return renderWithProviders(<DashboardPage />, { route: '/dashboard' })
+}
+
+/** Waits for the loading skeleton to be replaced by the loaded dashboard. */
+async function waitForDashboard() {
+  await waitFor(() => {
+    expect(
+      screen.getByRole('heading', { name: 'Dashboard' }),
+    ).toBeInTheDocument()
+  })
+}
+
+function panel(name: string) {
+  return screen.getByRole('region', { name })
 }
 
 describe('DashboardPage', () => {
@@ -26,7 +40,7 @@ describe('DashboardPage', () => {
       renderDashboard()
 
       expect(
-        screen.getByRole('status', { name: 'Loading users' }),
+        screen.getByRole('status', { name: 'Loading dashboard' }),
       ).toBeInTheDocument()
     })
   })
@@ -57,32 +71,31 @@ describe('DashboardPage', () => {
       mockedGetAll.mockResolvedValue(buildUsers(3))
       await user.click(screen.getByRole('button', { name: 'Retry' }))
 
-      await waitFor(() => {
-        expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
-      })
+      await waitForDashboard()
       expect(mockedGetAll).toHaveBeenCalledTimes(2)
     })
   })
 
   describe('empty state', () => {
-    it('explains the absence of data instead of rendering an empty table', async () => {
+    it('explains the absence of data without a spinner', async () => {
       mockedGetAll.mockResolvedValue([])
       renderDashboard()
 
       await waitFor(() => {
-        expect(screen.getByText(/no users found/i)).toBeInTheDocument()
+        expect(screen.getByText('No users found')).toBeInTheDocument()
       })
-      expect(screen.queryByText('ORGANIZATION')).not.toBeInTheDocument()
+      // A spinner beside "no users" claims the app is finished and still
+      // working at the same time.
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
   })
 
-  describe('loaded state', () => {
-    it('renders the four stat cards', async () => {
+  describe('stat cards', () => {
+    it('renders the four headline figures', async () => {
       renderDashboard()
+      await waitForDashboard()
 
-      await waitFor(() => {
-        expect(screen.getByText('USERS')).toBeInTheDocument()
-      })
+      expect(screen.getByText('USERS')).toBeInTheDocument()
       expect(screen.getByText('ACTIVE USERS')).toBeInTheDocument()
       expect(screen.getByText('USERS WITH LOANS')).toBeInTheDocument()
       expect(screen.getByText('USERS WITH SAVINGS')).toBeInTheDocument()
@@ -96,25 +109,126 @@ describe('DashboardPage', () => {
         buildUser({ hasLoan: false, hasSavings: false }),
       ])
       renderDashboard()
+      await waitForDashboard()
 
-      await waitFor(() => {
-        expect(screen.getByText('USERS WITH LOANS')).toBeInTheDocument()
-      })
+      expect(
+        screen.getByText('USERS WITH LOANS').closest('div'),
+      ).toHaveTextContent('2')
+      expect(
+        screen.getByText('USERS WITH SAVINGS').closest('div'),
+      ).toHaveTextContent('1')
+    })
+  })
 
-      const loansCard = screen.getByText('USERS WITH LOANS').closest('div')
-      const savingsCard = screen.getByText('USERS WITH SAVINGS').closest('div')
-      expect(loansCard).toHaveTextContent('2')
-      expect(savingsCard).toHaveTextContent('1')
+  describe('status breakdown', () => {
+    it('reports the count and share of each status', async () => {
+      mockedGetAll.mockResolvedValue([
+        buildUser({ status: 'active' }),
+        buildUser({ status: 'active' }),
+        buildUser({ status: 'pending' }),
+        buildUser({ status: 'blacklisted' }),
+      ])
+      renderDashboard()
+      await waitForDashboard()
+
+      const region = panel('Users by status')
+      expect(within(region).getByText('50%')).toBeInTheDocument()
+      expect(within(region).getAllByText('25%')).toHaveLength(2)
+      expect(within(region).getByText('0%')).toBeInTheDocument()
     })
 
-    it('renders the users table', async () => {
+    it('lists every status even when none match', async () => {
+      mockedGetAll.mockResolvedValue([buildUser({ status: 'active' })])
       renderDashboard()
+      await waitForDashboard()
 
-      await waitFor(() => {
-        expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
-      })
-      expect(screen.getByText('USERNAME')).toBeInTheDocument()
-      expect(screen.getByText('EMAIL')).toBeInTheDocument()
+      const region = panel('Users by status')
+      expect(within(region).getByText('Inactive')).toBeInTheDocument()
+      expect(within(region).getByText('Blacklisted')).toBeInTheDocument()
+    })
+  })
+
+  describe('top organizations', () => {
+    it('ranks organizations by user count', async () => {
+      mockedGetAll.mockResolvedValue([
+        buildUser({ organization: 'Lendsqr' }),
+        buildUser({ organization: 'Lendsqr' }),
+        buildUser({ organization: 'Irorun' }),
+      ])
+      renderDashboard()
+      await waitForDashboard()
+
+      const region = panel('Top organizations')
+      const names = within(region)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+
+      expect(names[0]).toContain('Lendsqr')
+      expect(names[1]).toContain('Irorun')
+    })
+  })
+
+  describe('recently joined', () => {
+    it('lists the newest users first', async () => {
+      mockedGetAll.mockResolvedValue([
+        buildUser({
+          dateJoined: '2020-01-01T00:00:00.000Z',
+          personalInfo: {
+            ...buildUser().personalInfo,
+            fullName: 'Older Signup',
+          },
+        }),
+        buildUser({
+          dateJoined: '2024-01-01T00:00:00.000Z',
+          personalInfo: {
+            ...buildUser().personalInfo,
+            fullName: 'Newer Signup',
+          },
+        }),
+      ])
+      renderDashboard()
+      await waitForDashboard()
+
+      const region = panel('Recently joined')
+      const [first] = within(region).getAllByRole('listitem')
+      expect(first).toHaveTextContent('Newer Signup')
+    })
+
+    it('links each row to that user and caches them on the way', async () => {
+      const user = userEvent.setup()
+      const target = buildUser({ id: 'user-42' })
+      mockedGetAll.mockResolvedValue([target])
+      renderDashboard()
+      await waitForDashboard()
+
+      const region = panel('Recently joined')
+      const [firstRow] = within(region).getAllByRole('listitem')
+      const link = within(firstRow).getByRole('link')
+      expect(link).toHaveAttribute('href', '/users/user-42')
+
+      await user.click(link)
+      expect(
+        JSON.parse(localStorage.getItem(STORAGE_KEYS.SELECTED_USER)!).id,
+      ).toBe('user-42')
+    })
+
+    it('offers a route through to the full list', async () => {
+      renderDashboard()
+      await waitForDashboard()
+
+      expect(
+        screen.getByRole('link', { name: 'View all users' }),
+      ).toHaveAttribute('href', '/users')
+    })
+  })
+
+  describe('separation from the users page', () => {
+    it('does not duplicate the users table', async () => {
+      renderDashboard()
+      await waitForDashboard()
+
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+      expect(screen.queryByText('ORGANIZATION')).not.toBeInTheDocument()
     })
   })
 })

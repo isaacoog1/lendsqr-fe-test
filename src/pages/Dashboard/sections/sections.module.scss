@@ -1,0 +1,169 @@
+@use '@/styles/abstracts/variables' as *;
+@use '@/styles/abstracts/mixins' as *;
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  padding: $spacing-lg;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-sm;
+  box-shadow: $shadow-sm;
+
+  @include respond-to(mobile) {
+    padding: $spacing-md;
+  }
+}
+
+.cardHeader {
+  @include flex-between;
+  gap: $spacing-md;
+}
+
+.cardTitle {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: var(--color-text-primary);
+}
+
+.cardLink {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: var(--color-primary);
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  list-style: none;
+}
+
+// Percentage bars. Drawn in CSS rather than pulling in a chart library for
+// two lists of five rows.
+.bar {
+  flex: 1;
+  height: 8px;
+  min-width: 60px;
+  border-radius: $radius-full;
+  background-color: var(--color-border);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: $radius-full;
+  background-color: var(--color-primary);
+  transition: width $transition-base;
+
+  &[data-status='active'] {
+    background-color: var(--color-success);
+  }
+
+  &[data-status='inactive'] {
+    background-color: var(--color-inactive);
+  }
+
+  &[data-status='pending'] {
+    background-color: var(--color-warning);
+  }
+
+  &[data-status='blacklisted'] {
+    background-color: var(--color-error);
+  }
+}
+
+.statusRow,
+.organizationRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.statusRow > :first-child {
+  flex-shrink: 0;
+  min-width: 96px;
+}
+
+.organizationName {
+  flex-shrink: 0;
+  min-width: 96px;
+  font-size: $font-size-sm;
+  color: var(--color-text-secondary);
+}
+
+.statusCount {
+  min-width: 48px;
+  text-align: right;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: var(--color-text-primary);
+}
+
+.statusShare {
+  min-width: 40px;
+  text-align: right;
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm;
+  margin: -#{$spacing-sm};
+  border-radius: $radius-sm;
+  color: inherit;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: var(--color-background);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.recentIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recentName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-primary);
+  @include truncate;
+}
+
+.recentMeta {
+  font-size: $font-size-xs;
+  color: var(--color-text-muted);
+}
+
+.recentDate {
+  font-size: $font-size-xs;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+
+  @include respond-to(tablet) {
+    display: none;
+  }
+}
