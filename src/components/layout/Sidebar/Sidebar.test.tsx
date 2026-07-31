@@ -1,19 +1,14 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import { AuthProvider } from '@/contexts/AuthProvider'
 import { STORAGE_KEYS } from '@/constants'
+import { renderWithProviders } from '@/test/renderWithProviders'
 import Sidebar from './Sidebar'
 
 function renderSidebar(isOpen = true) {
   localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
-  return render(
-    <MemoryRouter initialEntries={['/users']}>
-      <AuthProvider>
-        <Sidebar isOpen={isOpen} onClose={vi.fn()} />
-      </AuthProvider>
-    </MemoryRouter>,
-  )
+  return renderWithProviders(<Sidebar isOpen={isOpen} onClose={vi.fn()} />, {
+    route: '/users',
+  })
 }
 
 describe('Sidebar', () => {
