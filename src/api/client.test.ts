@@ -1,47 +1,121 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
 import { STORAGE_KEYS } from '@/constants'
 import { apiClient } from './client'
+
+const originalAdapter = apiClient.defaults.adapter
+
+/** Captures the outgoing request and replies with `body`. */
+function stubSuccess(body: unknown = {}) {
+  const adapter = vi.fn<AxiosAdapter>(async (requestConfig) => ({
+    data: body,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: requestConfig,
+  }))
+
+  apiClient.defaults.adapter = adapter
+  return adapter
+}
+
+/** Replies the way axios does for the given transport failure. */
+function stubFailure(error: unknown) {
+  apiClient.defaults.adapter = vi.fn<AxiosAdapter>(() => Promise.reject(error))
+}
 
 describe('apiClient', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('has correct base URL configured', () => {
-    expect(apiClient.defaults.baseURL).toBeDefined()
+  afterEach(() => {
+    apiClient.defaults.adapter = originalAdapter
   })
 
-  it('has timeout configured', () => {
-    expect(apiClient.defaults.timeout).toBe(60000)
+  describe('configuration', () => {
+    it('sends a timeout so a hung request cannot block the UI forever', () => {
+      expect(apiClient.defaults.timeout).toBe(60000)
+    })
+
+    it('requests JSON', () => {
+      expect(apiClient.defaults.headers.Accept).toBe('application/json')
+    })
+
+    it('resolves request paths against the configured base URL', async () => {
+      const adapter = stubSuccess()
+
+      await apiClient.get('/users.json')
+
+      const sent = adapter.mock.calls[0][0]
+      expect(sent.baseURL).toBe(apiClient.defaults.baseURL)
+      expect(sent.url).toBe('/users.json')
+    })
   })
 
-  it('has Accept header set to application/json', () => {
-    expect(apiClient.defaults.headers.Accept).toBe('application/json')
+  describe('auth header', () => {
+    it('attaches the stored token as a bearer credential', async () => {
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
+      const adapter = stubSuccess()
+
+      await apiClient.get('/users.json')
+
+      const sent = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+      expect(sent.headers.Authorization).toBe('Bearer test-token')
+    })
+
+    it('omits the header entirely when no token is stored', async () => {
+      const adapter = stubSuccess()
+
+      await apiClient.get('/users.json')
+
+      const sent = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+      expect(sent.headers.Authorization).toBeUndefined()
+    })
   })
 
-  it('attaches auth token from localStorage via request interceptor', async () => {
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
+  describe('error normalization', () => {
+    it('reports a connection failure in language a user can act on', async () => {
+      stubFailure(Object.assign(new Error('Network Error'), { config: {} }))
 
-    const interceptors = apiClient.interceptors.request as unknown as {
-      handlers: Array<{ fulfilled: (config: unknown) => unknown }>
-    }
+      await expect(apiClient.get('/users.json')).rejects.toEqual({
+        message: 'Please check your internet connection and try again.',
+        status: 0,
+      })
+    })
 
-    const handler = interceptors.handlers[0]
-    const config = { headers: {} as Record<string, string> }
-    const result = handler.fulfilled(config) as typeof config
+    it('surfaces the server message and status for an HTTP error', async () => {
+      stubFailure({
+        message: 'Request failed with status code 404',
+        response: { status: 404, data: { message: 'User not found' } },
+      })
 
-    expect(result.headers.Authorization).toBe('Bearer test-token')
+      await expect(apiClient.get('/users.json')).rejects.toEqual({
+        message: 'User not found',
+        status: 404,
+      })
+    })
+
+    it('falls back to a generic message when the body carries none', async () => {
+      stubFailure({
+        message: 'Request failed with status code 500',
+        response: { status: 500, data: {} },
+      })
+
+      await expect(apiClient.get('/users.json')).rejects.toEqual({
+        message: 'Something went wrong',
+        status: 500,
+      })
+    })
   })
 
-  it('does not attach auth header when no token exists', () => {
-    const interceptors = apiClient.interceptors.request as unknown as {
-      handlers: Array<{ fulfilled: (config: unknown) => unknown }>
-    }
+  describe('response handling', () => {
+    it('passes the body through untouched on success', async () => {
+      stubSuccess([{ id: 'user-1' }])
 
-    const handler = interceptors.handlers[0]
-    const config = { headers: {} as Record<string, string> }
-    const result = handler.fulfilled(config) as typeof config
+      const response = await apiClient.get('/users.json')
 
-    expect(result.headers.Authorization).toBeUndefined()
+      expect(response.data).toEqual([{ id: 'user-1' }])
+    })
   })
 })
