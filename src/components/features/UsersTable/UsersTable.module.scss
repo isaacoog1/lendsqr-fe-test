@@ -1,7 +1,12 @@
 @use '@/styles/abstracts/variables' as *;
 @use '@/styles/abstracts/mixins' as *;
 
+// Height of a header row: 12px padding top and bottom plus the line box.
+// Used to drop the filter panel directly beneath the header, as in the design.
+$header-row-height: 42px;
+
 .container {
+  position: relative;
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: $radius-sm;
@@ -10,6 +15,19 @@
 
   @include respond-to(mobile) {
     padding: $spacing-md;
+  }
+}
+
+.filterAnchor {
+  position: absolute;
+  top: calc(#{$spacing-lg} + #{$header-row-height});
+  left: $spacing-lg;
+  z-index: 30;
+
+  @include respond-to(mobile) {
+    top: calc(#{$spacing-md} + #{$header-row-height});
+    left: $spacing-md;
+    right: $spacing-md;
   }
 }
 
@@ -43,6 +61,40 @@
   gap: 6px;
 }
 
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.userLink {
+  color: inherit;
+
+  &:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
 .filterIcon {
   display: inline-flex;
   align-items: center;
@@ -64,6 +116,12 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+}
+
+// Replaces the "Filters Active" button label the toolbar used to carry.
+.filterIconActive {
+  opacity: 1;
+  color: var(--color-primary);
 }
 
 .tr {
