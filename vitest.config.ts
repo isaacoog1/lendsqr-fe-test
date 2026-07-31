@@ -14,5 +14,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      // Type declarations, barrels and test helpers carry no logic to cover.
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/index.ts',
+        'src/test/**',
+        'src/main.tsx',
+      ],
+    },
   },
 })
