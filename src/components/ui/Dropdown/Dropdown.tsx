@@ -10,6 +10,8 @@ interface DropdownItem {
 
 interface DropdownProps {
   trigger: ReactNode
+  /** Accessible name for the trigger. Required when `trigger` is icon-only. */
+  triggerLabel?: string
   items: DropdownItem[]
   align?: 'left' | 'right'
   className?: string
@@ -17,6 +19,7 @@ interface DropdownProps {
 
 function Dropdown({
   trigger,
+  triggerLabel,
   items,
   align = 'right',
   className,
@@ -58,6 +61,7 @@ function Dropdown({
         type="button"
         className={styles.trigger}
         onClick={() => setIsOpen((prev) => !prev)}
+        aria-label={triggerLabel}
         aria-expanded={isOpen}
         aria-haspopup="menu"
       >

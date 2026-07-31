@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
-import { buildUsers } from '@/test/factories'
+import { buildUser, buildUsers } from '@/test/factories'
 import { renderWithProviders } from '@/test/renderWithProviders'
 import UsersPage from './UsersPage'
 
@@ -133,23 +133,48 @@ describe('UsersPage', () => {
       expect(screen.getByText('ACTIVE USERS')).toBeInTheDocument()
     })
 
-    it('renders the search input and filter button', async () => {
+    it('renders the search input and the column filter triggers', async () => {
       renderUsersPage()
       await waitForUsers()
 
       expect(screen.getByLabelText('Search users')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Filter' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      ).toBeInTheDocument()
     })
 
-    it('opens the filter panel when the filter button is clicked', async () => {
+    it('opens the filter panel from a column header', async () => {
       const user = userEvent.setup()
       renderUsersPage()
       await waitForUsers()
 
-      await user.click(screen.getByRole('button', { name: 'Filter' }))
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      )
 
       expect(screen.getByLabelText('Organization')).toBeInTheDocument()
       expect(screen.getByLabelText('Username')).toBeInTheDocument()
+    })
+
+    it('narrows the table to users matching an applied filter', async () => {
+      const user = userEvent.setup()
+      mockedGetAll.mockResolvedValue([
+        buildUser({ username: 'keeper', status: 'active' }),
+        buildUser({ username: 'dropped', status: 'blacklisted' }),
+      ])
+      renderUsersPage()
+      await waitForUsers()
+
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      )
+      await user.selectOptions(screen.getByLabelText('Status'), 'active')
+      await user.click(screen.getByRole('button', { name: 'Filter' }))
+
+      await waitFor(() => {
+        expect(screen.getByText('keeper')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('dropped')).not.toBeInTheDocument()
     })
 
     it('persists the chosen user to localStorage on View Details', async () => {
@@ -159,8 +184,11 @@ describe('UsersPage', () => {
       renderUsersPage()
       await waitForUsers()
 
-      const actionButtons = screen.getAllByRole('button', { name: '' })
-      await user.click(actionButtons[0])
+      await user.click(
+        screen.getByRole('button', {
+          name: `Actions for ${firstUser.username}`,
+        }),
+      )
 
       await waitFor(() => {
         expect(screen.getByText('View Details')).toBeInTheDocument()
