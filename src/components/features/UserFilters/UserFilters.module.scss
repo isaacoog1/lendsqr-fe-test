@@ -1,11 +1,9 @@
 @use '@/styles/abstracts/variables' as *;
 @use '@/styles/abstracts/mixins' as *;
 
+// Positioning is the caller's job — the users table anchors this beneath the
+// column header, matching the design.
 .container {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 30;
   width: 270px;
   padding: $spacing-lg;
   background-color: var(--color-white);
@@ -15,9 +13,6 @@
 
   @include respond-to(mobile) {
     width: 100%;
-    position: static;
-    box-shadow: none;
-    border: none;
     padding: $spacing-md;
   }
 }
