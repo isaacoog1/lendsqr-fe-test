@@ -73,8 +73,8 @@ function Header({ onMenuClick }: HeaderProps) {
           <Bell size={20} />
         </button>
         <div className={styles.profile}>
-          <Avatar name="Adedeji" size="sm" />
-          <span className={styles.profileName}>Adedeji</span>
+          <Avatar name="Oluwakorede" size="sm" />
+          <span className={styles.profileName}>Oluwakorede</span>
           <ChevronDown size={14} className={styles.profileChevron} />
         </div>
       </div>

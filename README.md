@@ -143,8 +143,8 @@ request. Against a backend with per-resource routes it is a one-line change.
 
 Pagination, 20 rows per page, with a page-size selector. No virtualization.
 
-At 500 records pagination already caps the DOM at 20 rows, and everything —
-sorting, filtering, search — stays instant. Virtualization would buy nothing
+At 500 records pagination already caps the DOM at 20 rows, and everything,
+sorting, filtering, search, stays instant. Virtualization would buy nothing
 measurable and cost a fair amount: measured row heights, scroll restoration,
 and a table that no longer works with browser find-in-page or keyboard tabbing.
 The point where it starts paying for itself is thousands of rows rendered at
@@ -160,7 +160,7 @@ The design shows the happy path. The other three were designed here.
 
 **Loading.** Skeletons shaped like the content they replace, not a centred
 spinner. Skeletons are `aria-hidden`, so each group sits inside a labelled live
-region — otherwise the page announces nothing at all and simply appears empty
+region, otherwise the page announces nothing at all and simply appears empty
 until data lands.
 
 **Empty.** Three different situations get three different messages. The
@@ -174,7 +174,7 @@ the list, an unreachable server offers Retry. Reporting both as "user not
 found" tells people not to retry at the exact moment retrying would work.
 
 An error boundary wraps the router as a last line of defence. Without one, any
-render-time throw unmounts the whole tree and leaves a blank page — not
+render-time throw unmounts the whole tree and leaves a blank page, not
 theoretical here, since the details page reads a user object straight out of
 `localStorage` and a stale record is valid JSON of the wrong shape.
 
@@ -191,8 +191,7 @@ theoretical here, since the details page reads a user object straight out of
 
 The sidebar renders 22 navigation links and exactly two resolve to a real route.
 The other 20 render a placeholder **inside** the app layout, so the header and
-sidebar survive. Registered outside it, one click on the most prominent
-component in the app would strip the shell and leave no navigation to get back
+sidebar survive. Registered outside it, one click would strip the shell and leave no navigation to get back
 with.
 
 Routes are lazy-loaded, so landing on `/login` does not pull down the users
@@ -219,7 +218,7 @@ late in the evening.
 ## Dashboard
 
 The Figma frame labelled "Dashboard" is the Users screen, so the brief leaves
-the actual overview undefined — one of the gaps it says it is watching for.
+the actual overview undefined.
 Rather than ship two near-identical pages, `/dashboard` shows a status
 breakdown, the top organizations by user count, and the five most recent
 sign-ups.
@@ -237,7 +236,7 @@ refresh on `/users/:id` instant.
 
 All of it goes through helpers in `src/utils/storage.ts`, which swallow both
 malformed JSON and a full quota. Logging out clears the token, the cached user,
-and the React Query cache — without the last one, signing in again inside the
+and the React Query cache. Without the last one, signing in again inside the
 10-minute `gcTime` was served the previous session's data.
 
 ## Accessibility
@@ -249,7 +248,7 @@ cell is a real link rather than a click handler on a `<tr>`. Row action buttons
 are named after their user instead of announcing "button, collapsed" twenty
 times a page. Column headers carry `scope` and `aria-sort`.
 
-The tabs implement the full ARIA pattern — a single tab stop, arrow keys, Home
+The tabs implement the full ARIA pattern, a single tab stop, arrow keys, Home
 and End, and a panel that references its tab. Declaring `role="tab"` without
 that is worse than plain buttons, because a screen reader promises "tab, 1 of
 6" and then the arrow keys do nothing. The row menu moves focus into itself on
@@ -280,8 +279,7 @@ rather than squeezing columns to nothing.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is
-no test that the error state renders or that Retry actually refetches — and
-those are exactly the cases the brief asks for.
+no test that the error state renders or that Retry actually refetches.
 
 Tests query by role and accessible name. That keeps them readable and means
 they fail when the accessibility of a component regresses, not just when its
