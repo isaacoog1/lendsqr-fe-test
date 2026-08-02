@@ -329,6 +329,7 @@ function UsersTable({
                                     : `Filter by ${label}`
                                 }
                                 aria-expanded={filtersOpen}
+                                aria-haspopup="dialog"
                               >
                                 <ListFilter size={12} />
                               </button>

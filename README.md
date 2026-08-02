@@ -414,6 +414,14 @@ that is worse than plain buttons, because a screen reader promises "tab, 1 of
 6" and then the arrow keys do nothing. The row menu moves focus into itself on
 open and returns focus to its trigger on close.
 
+The filter panel is a `role="dialog"` that traps Tab (`useFocusTrap`). It is
+anchored under a column header but rendered after the table, so without the trap
+the keyboard never reached it: focus stayed on the header button that opened the
+panel and Tab kept walking the remaining columns underneath it. Closing —
+Escape, Filter, Reset — hands focus back to that header button, unless the user
+already clicked somewhere else, in which case pulling focus back would fight
+them.
+
 The login fields keep their labels for assistive technology while hiding them
 visually, since the design is placeholder-only and placeholders disappear the
 moment someone types.

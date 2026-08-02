@@ -377,6 +377,66 @@ describe('UsersTable', () => {
       expect(screen.queryByLabelText('Organization')).not.toBeInTheDocument()
     })
 
+    // The panel is anchored under a column header but rendered after the table,
+    // so an untrapped keyboard walks the remaining columns instead of entering
+    // the panel it just opened.
+    describe('keyboard', () => {
+      async function openPanel() {
+        const user = userEvent.setup()
+        renderTable({ withFilters: true })
+
+        const trigger = screen.getByRole('button', {
+          name: 'Filter by ORGANIZATION',
+        })
+        await user.click(trigger)
+
+        return { user, trigger }
+      }
+
+      it('moves focus into the panel when it opens', async () => {
+        await openPanel()
+
+        expect(screen.getByLabelText('Organization')).toHaveFocus()
+      })
+
+      it('wraps from the last control back to the first', async () => {
+        const { user } = await openPanel()
+
+        await user.click(screen.getByRole('button', { name: 'Reset' }))
+        await user.tab()
+        expect(screen.getByRole('button', { name: 'Filter' })).toHaveFocus()
+
+        await user.tab()
+        expect(screen.getByLabelText('Organization')).toHaveFocus()
+      })
+
+      it('wraps backwards from the first control to the last', async () => {
+        const { user } = await openPanel()
+
+        await user.tab({ shift: true })
+
+        expect(screen.getByRole('button', { name: 'Filter' })).toHaveFocus()
+      })
+
+      it('never reaches the column headers behind it', async () => {
+        const { user } = await openPanel()
+
+        const panel = screen.getByRole('dialog', { name: 'Filter users' })
+        for (let press = 0; press < 12; press += 1) {
+          await user.tab()
+          expect(panel).toContainElement(document.activeElement as HTMLElement)
+        }
+      })
+
+      it('hands focus back to the header button on Escape', async () => {
+        const { user, trigger } = await openPanel()
+
+        await user.keyboard('{Escape}')
+
+        expect(trigger).toHaveFocus()
+      })
+    })
+
     it('reports the chosen filters to the caller', async () => {
       const user = userEvent.setup()
       const { onApply } = renderTable({ withFilters: true })

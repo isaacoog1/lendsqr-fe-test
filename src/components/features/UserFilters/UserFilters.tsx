@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input, Select, Button } from '@/components/ui'
+import { useFocusTrap } from '@/hooks'
 import {
   filterSchema,
   EMPTY_FILTERS,
@@ -39,6 +40,13 @@ function UserFilters({
     defaultValues: values,
   })
 
+  /**
+   * The panel is anchored under a column header but rendered after the table,
+   * so without a trap the keyboard never reaches it: focus stays on the header
+   * button that opened it and Tab keeps walking the remaining columns.
+   */
+  const panelRef = useFocusTrap<HTMLDivElement>(isOpen)
+
   const organizationOptions = organizations.map((org) => ({
     value: org,
     label: org,
@@ -57,7 +65,13 @@ function UserFilters({
   if (!isOpen) return null
 
   return (
-    <div className={styles.container}>
+    <div
+      ref={panelRef}
+      className={styles.container}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Filter users"
+    >
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         <Select
           label="Organization"
