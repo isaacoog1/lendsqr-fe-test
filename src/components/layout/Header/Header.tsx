@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react'
+import { type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Bell, Menu, Search, ChevronDown } from 'lucide-react'
 import { Avatar } from '@/components/ui'
@@ -19,6 +19,16 @@ function Header({ onMenuClick }: HeaderProps) {
       new FormData(event.currentTarget).get('q') ?? '',
     ).trim()
     navigate(query ? `/users?q=${encodeURIComponent(query)}` : '/users')
+  }
+
+  // type="search" fires this on every keystroke and on the native cancel
+  // ("x") button, which clears the value without submitting the form. Reset
+  // as soon as the field goes empty instead of waiting on a submit that may
+  // never come.
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    if (event.target.value === '' && activeQuery) {
+      navigate('/users')
+    }
   }
 
   return (
@@ -59,6 +69,7 @@ function Header({ onMenuClick }: HeaderProps) {
           placeholder="Search for anything"
           className={styles.searchInput}
           defaultValue={activeQuery}
+          onChange={handleChange}
           aria-label="Search users"
         />
         <button

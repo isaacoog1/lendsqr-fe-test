@@ -80,6 +80,15 @@ describe('Header', () => {
       expect(screen.getByLabelText('Search users')).toHaveValue('existing')
     })
 
+    it('resets the list as soon as an active query is cleared, without a submit', async () => {
+      const user = userEvent.setup()
+      renderHeader('/users?q=existing')
+
+      await user.clear(screen.getByLabelText('Search users'))
+
+      expect(currentLocation()).toBe('/users')
+    })
+
     it('is exposed as a search landmark', () => {
       renderHeader()
 
