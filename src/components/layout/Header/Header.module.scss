@@ -4,7 +4,7 @@
 .header {
   display: flex;
   align-items: center;
-  gap: $spacing-xl;
+  gap: $spacing-3xl;
   position: fixed;
   top: 0;
   left: 0;
@@ -15,6 +15,11 @@
   border-bottom: 1px solid var(--color-border);
   box-shadow: $shadow-sm;
   z-index: 50;
+
+
+  @include respond-to(desktop) {
+    column-gap: $spacing-xl;
+  }
 
   // From tablet down the search drops onto a row of its own, leaving the logo
   // and the profile group on the row above it.
