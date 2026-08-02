@@ -449,7 +449,7 @@ wraps to a second centred row below that rather than overflowing the card.
 
 ## Testing
 
-224 tests across 25 files. Roughly 94% of statements and 90% of branches.
+229 tests across 25 files. Roughly 94% of statements and 90% of branches.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is
@@ -498,8 +498,11 @@ Two of the six detail tabs, Documents and App and System, are permanently
 empty. That is deliberate: they demonstrate the empty state on a screen where
 it would otherwise never appear.
 
-The header's notification bell and the "Docs" link are decorative, as they are
-in the design.
+The header's notification bell is decorative, as it is in the design. The
+"Docs" link is not — it opens Lendsqr's published documentation at
+<https://docs.lendsqr.com> in a new tab, with `rel="noopener noreferrer"`. A
+real destination exists for that label, so pointing at it beats an `href="#"`
+that does nothing.
 
 The users table does not show a full name, so there is no way to search by one:
 the API's `search` spans organization, username, email and phone number, which

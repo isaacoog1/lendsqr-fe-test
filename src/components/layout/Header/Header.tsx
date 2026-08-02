@@ -71,7 +71,12 @@ function Header({ onMenuClick }: HeaderProps) {
       </form>
 
       <div className={styles.right}>
-        <a href="https://docs.lendsqr.com" className={styles.docsLink} target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://docs.lendsqr.com"
+          className={styles.docsLink}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Docs
         </a>
         <button className={styles.iconButton} aria-label="Notifications">
