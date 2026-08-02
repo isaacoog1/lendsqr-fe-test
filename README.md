@@ -78,7 +78,7 @@ src/
   hooks/           React Query wrappers
   layouts/         AuthLayout and AppLayout
   pages/           One folder per route
-  routes/          Route table and the two guards
+  routes/          Router, route table, the two guards, the error boundary
   services/        Typed endpoint functions
   styles/          Reset, typography, variables, mixins, colours
   test/            Factories and the shared render helper
@@ -173,10 +173,13 @@ filters, because that is the only one where clearing them helps.
 the list, an unreachable server offers Retry. Reporting both as "user not
 found" tells people not to retry at the exact moment retrying would work.
 
-An error boundary wraps the router as a last line of defence. Without one, any
-render-time throw unmounts the whole tree and leaves a blank page, not
-theoretical here, since the details page reads a user object straight out of
-`localStorage` and a stale record is valid JSON of the wrong shape.
+**Crash.** The root route carries an `errorElement` as a last line of defence.
+Without one, any render-time throw unmounts the whole tree and leaves a blank
+page, not theoretical here, since the details page reads a user object straight
+out of `localStorage` and a stale record is valid JSON of the wrong shape. The
+data router owns the boundary itself, so the recovery screen is a function
+component that reads what was caught with `useRouteError` — the class component
+this used to need is gone.
 
 ## Routing
 
@@ -186,13 +189,33 @@ theoretical here, since the details page reads a user object straight out of
 | `/dashboard` | Dashboard | Required |
 | `/users` | Users list | Required |
 | `/users/:id` | User details | Required |
-| anything else, signed in | Coming soon, inside the shell | Required |
-| anything else, signed out | 404 | — |
+| the other 20 sidebar links | Coming soon, inside the shell | Required |
+| anything else | 404 | — |
 
-The sidebar renders 22 navigation links and exactly two resolve to a real route.
-The other 20 render a placeholder **inside** the app layout, so the header and
-sidebar survive. Registered outside it, one click would strip the shell and leave no navigation to get back
-with.
+Routing uses `createBrowserRouter`, so the route table is plain data rather
+than JSX nested in a component. Three things fall out of that. The app builds
+it with `createBrowserRouter` and the tests with `createMemoryRouter`, from the
+same exported array, so what the tests exercise is the tree that ships. Render
+errors get an `errorElement` instead of a class boundary bolted on above the
+router. And loaders, actions and deferred data are available later without
+another migration.
+
+A data router leaves no room for providers between the router and the routes,
+so the auth provider and the Suspense boundary live in a root route
+(`RootLayout`) that every screen renders under. That also puts them inside the
+error boundary, where before they sat outside it.
+
+The sidebar renders 22 navigation links and exactly two resolve to a real
+screen. The other 20 get a route each, generated from the same sidebar config,
+rendering a placeholder **inside** the app layout so the header and sidebar
+survive. Registered outside it, one click would strip the shell and leave no
+navigation to get back with.
+
+Naming those 20 rather than catching them with one splat is what keeps the 404
+reachable. A splat under the protected layout matches every unknown URL, which
+made the 404 route below it dead config and answered a mistyped address with a
+placeholder promising a feature that is never coming. "Not built yet" and "no
+such page" are different answers, so they get different routes.
 
 Routes are lazy-loaded, so landing on `/login` does not pull down the users
 table, TanStack Table, the filter forms and all six detail sections first.

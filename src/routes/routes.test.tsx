@@ -3,16 +3,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
 import { buildUsers } from '@/test/factories'
-import { renderWithProviders } from '@/test/renderWithProviders'
-import AppRoutes from './index'
+import { renderRoutes } from '@/test/renderWithProviders'
+import { routes } from './routes'
 
 vi.mock('@/services/users.service')
 
 function renderAt(route: string) {
-  return renderWithProviders(<AppRoutes />, { route })
+  return renderRoutes(routes, { route })
 }
 
-describe('AppRoutes', () => {
+describe('routes', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.mocked(usersService.getAll).mockResolvedValue(buildUsers(3))
@@ -23,6 +23,12 @@ describe('AppRoutes', () => {
       renderAt('/users')
 
       expect(await screen.findByText('Welcome!')).toBeInTheDocument()
+    })
+
+    it('sends an unknown path to the 404 page, not to login', async () => {
+      renderAt('/not-in-the-sidebar')
+
+      expect(await screen.findByText('Page not found')).toBeInTheDocument()
     })
   })
 
@@ -65,12 +71,12 @@ describe('AppRoutes', () => {
       expect(await screen.findByText('Go to Users')).toBeInTheDocument()
     })
 
-    it('falls back to a generic title for an unknown path', async () => {
+    // A destination the sidebar never advertised is a 404, not a placeholder:
+    // "not built yet" and "no such page" are different answers.
+    it('shows the 404 page for an unknown path', async () => {
       renderAt('/not-in-the-sidebar')
 
-      expect(
-        await screen.findByRole('heading', { name: 'This page' }),
-      ).toBeInTheDocument()
+      expect(await screen.findByText('Page not found')).toBeInTheDocument()
     })
 
     it('redirects the root to the dashboard', async () => {

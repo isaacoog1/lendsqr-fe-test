@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react'
 import { render } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import {
+  MemoryRouter,
+  RouterProvider,
+  createMemoryRouter,
+  type RouteObject,
+} from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/contexts/AuthProvider'
 
@@ -10,19 +15,26 @@ interface RenderOptions {
 }
 
 /**
+ * Retries are off so rejected queries surface their error state immediately
+ * instead of after a backoff, and nothing is cached between tests.
+ */
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  })
+}
+
+/**
  * Renders with the providers the app supplies at runtime, using a fresh
- * QueryClient per test. Retries are off so rejected queries surface their
- * error state immediately instead of after a backoff.
+ * QueryClient per test.
  */
 export function renderWithProviders(
   ui: ReactNode,
   { route = '/' }: RenderOptions = {},
 ) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  })
+  const queryClient = createTestQueryClient()
 
   return {
     queryClient,
@@ -31,6 +43,29 @@ export function renderWithProviders(
         <MemoryRouter initialEntries={[route]}>
           <AuthProvider>{ui}</AuthProvider>
         </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  }
+}
+
+/**
+ * Renders a route table in a memory data router — the same shape the app runs,
+ * minus the browser history. The root route supplies AuthProvider, so only the
+ * query client is wrapped here.
+ */
+export function renderRoutes(
+  routes: RouteObject[],
+  { route = '/' }: RenderOptions = {},
+) {
+  const queryClient = createTestQueryClient()
+  const router = createMemoryRouter(routes, { initialEntries: [route] })
+
+  return {
+    queryClient,
+    router,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
       </QueryClientProvider>,
     ),
   }
