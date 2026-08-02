@@ -206,10 +206,10 @@ be is claiming more than it knows. Retry refetches both.
 **Crash.** The root route carries an `errorElement` as a last line of defence.
 Without one, any render-time throw unmounts the whole tree and leaves a blank
 page, not theoretical here, since the details page reads a record straight out
-of `localStorage` and a stale entry is valid JSON of the wrong shape. The
-data router owns the boundary itself, so the recovery screen is a function
-component that reads what was caught with `useRouteError` — the class component
-this used to need is gone.
+of `localStorage` and a stale entry is valid JSON of the wrong shape. The data
+router owns the boundary itself, so the recovery screen is an ordinary function
+component that reads what was caught with `useRouteError` — no class component
+anywhere in the codebase.
 
 ## Routing
 
@@ -222,18 +222,19 @@ this used to need is gone.
 | the other 20 sidebar links | Coming soon, inside the shell | Required |
 | anything else | 404 | — |
 
-Routing uses `createBrowserRouter`, so the route table is plain data rather
-than JSX nested in a component. Three things fall out of that. The app builds
-it with `createBrowserRouter` and the tests with `createMemoryRouter`, from the
-same exported array, so what the tests exercise is the tree that ships. Render
-errors get an `errorElement` instead of a class boundary bolted on above the
-router. And loaders, actions and deferred data are available later without
-another migration.
+The route table is plain data rather than JSX nested in a component, and three
+things fall out of that. The app hands the exported array to
+`createBrowserRouter` and the tests hand the same array to
+`createMemoryRouter`, so what the tests exercise is the tree that ships. Render
+errors get an `errorElement`, which is a route-level concern, rather than a
+class boundary bolted on above the router. And loaders, actions and deferred
+data are available whenever a real backend makes them worth having.
 
 A data router leaves no room for providers between the router and the routes,
 so the auth provider and the Suspense boundary live in a root route
 (`RootLayout`) that every screen renders under. That also puts them inside the
-error boundary, where before they sat outside it.
+error boundary, so a throw while reading the stored token is caught rather than
+blanking the page.
 
 The sidebar renders 22 navigation links and exactly two resolve to a real
 screen. The other 20 get a route each, generated from the same sidebar config,
@@ -242,10 +243,10 @@ survive. Registered outside it, one click would strip the shell and leave no
 navigation to get back with.
 
 Naming those 20 rather than catching them with one splat is what keeps the 404
-reachable. A splat under the protected layout matches every unknown URL, which
-made the 404 route below it dead config and answered a mistyped address with a
-placeholder promising a feature that is never coming. "Not built yet" and "no
-such page" are different answers, so they get different routes.
+reachable. A splat under the protected layout would match every unknown URL,
+leaving the 404 route below it as dead config and answering a mistyped address
+with a placeholder that promises a feature nobody is building. "Not built yet"
+and "no such page" are different answers, so they get different routes.
 
 Routes are lazy-loaded, so landing on `/login` does not pull down the users
 table, TanStack Table, the filter forms and all six detail sections first.
@@ -286,9 +287,10 @@ The organization dropdown is populated from `GET /users/stats`, which returns
 the distinct list. Deriving it client-side would mean loading all 500 users to
 collect ten names.
 
-The date filter now compares calendar days server-side. The local-time
-comparison this used to do in the browser is gone with it — worth knowing if a
-sign-up late in the evening appears under the neighbouring day.
+The date filter passes a calendar day, `YYYY-MM-DD`, and the comparison happens
+server-side. `<input type="date">` yields that day in the viewer's timezone, so
+a sign-up recorded late in the evening can fall under the neighbouring day for
+anyone far enough from the server's.
 
 ## Dashboard
 
@@ -301,8 +303,9 @@ sign-ups.
 The first two come from `GET /users/stats`, counted over all 500 records rather
 than recomputed in every browser. "Recently joined" is
 `?sortBy=dateJoined&sortOrder=desc&perPage=5` — sorting and slicing are the
-endpoint's job now. The bars are CSS widths; a charting library is not worth it
-for two lists of five rows.
+endpoint's job, so the page ships five rows rather than 500 to find five. The
+bars are CSS widths; a charting library is not worth it for two lists of five
+rows.
 
 The stat cards report platform totals and do not move when the table below them
 is filtered. That is deliberate: the cards describe the platform, the table
@@ -367,12 +370,13 @@ The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is
 no test that the error state renders or that Retry actually refetches.
 
-With the server doing the filtering, a test that renders three users and
-expects one after filtering would be testing nothing. So those assertions moved
-to the query the page asked for: applying a status filter sends `status`,
-sorting a column sends `sortBy` and `sortOrder`, and either one resets `page` to
-1. What the server does with those parameters is the API's test suite, not
-this one.
+Because the server does the filtering, the page's job is to ask the right
+question, not to narrow an array — so that is what the assertions check.
+Applying a status filter sends `status`, sorting a column sends `sortBy` and
+`sortOrder`, and either one resets `page` to 1. Rendering three users and
+expecting one back after a filter would prove nothing about code that ships;
+what the server does with those parameters is the API's test suite, not this
+one.
 
 `usersQuery.ts` is unit-tested directly, including every malformed URL the API
 would reject.
