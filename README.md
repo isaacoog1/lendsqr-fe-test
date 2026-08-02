@@ -3,6 +3,10 @@
 An admin console for browsing 500 user records, built for the Lendsqr Frontend
 Engineer assessment. Four screens: Login, Dashboard, Users, and User details.
 
+**Live:** <https://oguntuyo-oluwakorede-isaac-lendsqr-fe-test.vercel.app> — sign
+in with `admin@lendsqr.com` / `Password123!`, also printed under the login
+button.
+
 ## Running it
 
 ```bash
