@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   useReactTable,
   createColumnHelper,
@@ -109,6 +109,38 @@ function UsersTable({
 }: UsersTableProps) {
   const navigate = useNavigate()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const filterPanelRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Dismiss the panel on a click anywhere else on the page, or on Escape.
+   * The column headers' filter buttons are exempt: they toggle, so closing on
+   * their mousedown would leave the following click reopening what it closed.
+   */
+  useEffect(() => {
+    if (!filtersOpen) return
+
+    function handleMouseDown(event: MouseEvent) {
+      const target = event.target
+
+      if (!(target instanceof Element)) return
+      if (filterPanelRef.current?.contains(target)) return
+      if (target.closest(`.${styles.filterIcon}`)) return
+
+      setFiltersOpen(false)
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setFiltersOpen(false)
+    }
+
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [filtersOpen])
 
   // The API describes sorting as two scalars; TanStack Table wants a list.
   // Translating at this boundary keeps the table's shape out of the URL.
@@ -319,7 +351,7 @@ function UsersTable({
         scroll container would be clipped.
       */}
       {filters && filtersOpen && (
-        <div className={styles.filterAnchor}>
+        <div className={styles.filterAnchor} ref={filterPanelRef}>
           <UserFilters
             organizations={filters.organizations}
             values={filters.values}

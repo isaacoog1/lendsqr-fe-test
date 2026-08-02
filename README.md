@@ -328,6 +328,10 @@ absolutely positioned panel inside `overflow-x: auto` gets clipped. It is
 seeded from the URL, so reopening it shows what is applied rather than an empty
 form over a filtered table.
 
+A click anywhere outside the panel dismisses it, as does Escape. The column
+funnel icons are exempt from that handler: they toggle, so closing on their
+`mousedown` would leave the click that follows reopening what it just closed.
+
 The organization dropdown is populated from `GET /users/stats`, which returns
 the distinct list. Deriving it client-side would mean loading all 500 users to
 collect ten names.
@@ -398,9 +402,9 @@ moment someone types.
 
 | Width | Behaviour |
 |---|---|
-| ≤ 480px | Single column, search moves to its own row under the logo |
-| ≤ 768px | Sidebar becomes a drawer, panels stack |
-| ≤ 1024px | Stat cards drop to two columns |
+| ≤ 480px | Stat cards drop to a single column |
+| ≤ 768px | Sidebar becomes a drawer, search moves to its own row under the logo |
+| ≤ 1024px | Stat cards drop to two columns, dashboard panels stack |
 | above | Full layout, sidebar fixed |
 
 All three are `max-width` queries through one `respond-to` mixin, so the
@@ -409,7 +413,7 @@ rather than squeezing columns to nothing.
 
 ## Testing
 
-210 tests across 25 files. Roughly 94% of statements and 90% of branches.
+214 tests across 25 files. Roughly 94% of statements and 90% of branches.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is

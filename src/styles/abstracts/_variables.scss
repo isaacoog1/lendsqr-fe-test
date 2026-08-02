@@ -47,8 +47,8 @@ $line-height-relaxed: 1.75;
 // Layout
 $sidebar-width: 283px;
 $header-height: 100px;
-// The search moves onto its own row below $breakpoint-mobile.
-$header-height-mobile: 124px;
+// The search moves onto its own row at and below $breakpoint-tablet.
+$header-height-stacked: 124px;
 // The design's stat card is 240x160. Only the height is pinned here — the
 // width is left to the grid so the row fills without dead space.
 $stat-card-height: 160px;

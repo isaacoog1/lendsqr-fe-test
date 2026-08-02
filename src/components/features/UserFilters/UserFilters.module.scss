@@ -5,7 +5,7 @@
 // column header, matching the design.
 .container {
   width: 270px;
-  padding: $spacing-lg;
+  padding: $spacing-md;
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: $radius-sm;
@@ -20,7 +20,27 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: $spacing-sm;
+}
+
+/*
+ * Input and Select default to the compact uppercase label the login form was
+ * built around. This panel is the one place the design asks for plain
+ * sentence-case labels over lighter, rounder fields, so it restyles what it
+ * renders rather than moving the defaults out from under the login form.
+ */
+.form label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.form input,
+.form select {
+  border-width: 1px;
+  border-radius: $radius-md;
 }
 
 .actions {
@@ -28,7 +48,13 @@
   gap: $spacing-md;
   margin-top: $spacing-sm;
 
+  // The design sets these two apart from the app's uppercase buttons: equal
+  // halves of the panel, sentence case, on the same radius as the fields.
   button {
     flex: 1;
+    padding: 12px $spacing-sm;
+    border-radius: $radius-md;
+    text-transform: none;
+    letter-spacing: normal;
   }
 }

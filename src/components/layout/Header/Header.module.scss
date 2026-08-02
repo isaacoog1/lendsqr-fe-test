@@ -2,7 +2,9 @@
 @use '@/styles/abstracts/mixins' as *;
 
 .header {
-  @include flex-between;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xl;
   position: fixed;
   top: 0;
   left: 0;
@@ -14,9 +16,18 @@
   box-shadow: $shadow-sm;
   z-index: 50;
 
+  // From tablet down the search drops onto a row of its own, leaving the logo
+  // and the profile group on the row above it.
+  @include respond-to(tablet) {
+    flex-wrap: wrap;
+    align-content: center;
+    height: $header-height-stacked;
+    column-gap: $spacing-md;
+    row-gap: $spacing-sm;
+  }
+
   @include respond-to(mobile) {
-    height: $header-height-mobile;
-    padding: $spacing-md;
+    padding: 0 $spacing-md;
   }
 }
 
@@ -25,15 +36,10 @@
   align-items: center;
   gap: $spacing-xl;
 
+  // Fills the first row so the profile group stays pinned to the far edge.
   @include respond-to(tablet) {
     flex: 1;
     gap: $spacing-md;
-  }
-
-  // Below mobile the search drops onto a second row beneath the logo.
-  @include respond-to(mobile) {
-    flex-wrap: wrap;
-    row-gap: $spacing-sm;
   }
 }
 
@@ -66,16 +72,16 @@
 .searchWrapper {
   display: flex;
   align-items: stretch;
-  flex: 0 0 $search-width;
+  // Shrinkable below its 400px design width: between the tablet breakpoint and
+  // roughly 900px the row is too narrow to hold it whole.
+  flex: 0 1 $search-width;
+  min-width: 0;
   height: $search-height;
 
+  // Ordered after the two groups above so it wraps onto the second row, and
+  // basis 100% so nothing can share that row with it.
   @include respond-to(tablet) {
-    flex: 1;
-    min-width: 0;
-  }
-
-  @include respond-to(mobile) {
-    order: 3;
+    order: 1;
     flex-basis: 100%;
   }
 }
@@ -126,6 +132,10 @@
   display: flex;
   align-items: center;
   gap: $spacing-lg;
+  // Holds the profile group at the far edge now that the search sits between
+  // it and the logo as a sibling rather than inside the left group.
+  margin-left: auto;
+  flex-shrink: 0;
 
   @include respond-to(mobile) {
     gap: $spacing-sm;

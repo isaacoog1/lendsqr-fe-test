@@ -43,7 +43,10 @@
   grid-template-columns: repeat(2, 1fr);
   gap: $spacing-lg;
 
-  @include respond-to(tablet) {
+  // Full width from the same point the stat cards drop to two per row: each
+  // panel is a label, a bar and two figures, which need the whole row once
+  // half of one stops being wider than a stat card.
+  @include respond-to(desktop) {
     grid-template-columns: 1fr;
   }
 }

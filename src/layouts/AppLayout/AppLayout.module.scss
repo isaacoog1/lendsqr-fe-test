@@ -13,13 +13,15 @@
   min-height: calc(100vh - $header-height);
   transition: margin-left $transition-base;
 
+  // The header grows a second row for the search here, so the content below
+  // it has to start lower.
   @include respond-to(tablet) {
     margin-left: 0;
+    margin-top: $header-height-stacked;
+    min-height: calc(100vh - $header-height-stacked);
   }
 
   @include respond-to(mobile) {
-    margin-top: $header-height-mobile;
-    min-height: calc(100vh - $header-height-mobile);
     padding: $spacing-md;
   }
 }

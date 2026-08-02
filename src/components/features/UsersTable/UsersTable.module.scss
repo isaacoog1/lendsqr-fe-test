@@ -61,6 +61,13 @@ $header-row-height: 42px;
   gap: 6px;
 }
 
+// Header icons are flex items inside a cell the table sizes from its text.
+// Left shrinkable they collapse to zero width in whichever columns the layout
+// squeezes — the sort chevron and the funnel simply vanish there.
+.headerContent svg {
+  flex-shrink: 0;
+}
+
 .sortButton {
   display: inline-flex;
   align-items: center;
@@ -99,6 +106,7 @@ $header-row-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   padding: 2px;
   color: var(--color-text-secondary);
   cursor: pointer;

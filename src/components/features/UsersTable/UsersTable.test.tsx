@@ -249,6 +249,57 @@ describe('UsersTable', () => {
       expect(screen.getByLabelText('Status')).toBeInTheDocument()
     })
 
+    it('closes the filter panel on a click outside it', async () => {
+      const user = userEvent.setup()
+      renderTable({ withFilters: true })
+
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      )
+      await user.click(document.body)
+
+      expect(screen.queryByLabelText('Organization')).not.toBeInTheDocument()
+    })
+
+    it('leaves the panel open while it is being filled in', async () => {
+      const user = userEvent.setup()
+      renderTable({ withFilters: true })
+
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      )
+      await user.click(screen.getByLabelText('Username'))
+
+      expect(screen.getByLabelText('Organization')).toBeInTheDocument()
+    })
+
+    // The header button toggles, so the outside-click handler has to ignore
+    // it — otherwise it would close on mousedown and reopen on click.
+    it('closes the panel from the header button that opened it', async () => {
+      const user = userEvent.setup()
+      renderTable({ withFilters: true })
+
+      const trigger = screen.getByRole('button', {
+        name: 'Filter by ORGANIZATION',
+      })
+      await user.click(trigger)
+      await user.click(trigger)
+
+      expect(screen.queryByLabelText('Organization')).not.toBeInTheDocument()
+    })
+
+    it('closes the filter panel on Escape', async () => {
+      const user = userEvent.setup()
+      renderTable({ withFilters: true })
+
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      )
+      await user.keyboard('{Escape}')
+
+      expect(screen.queryByLabelText('Organization')).not.toBeInTheDocument()
+    })
+
     it('reports the chosen filters to the caller', async () => {
       const user = userEvent.setup()
       const { onApply } = renderTable({ withFilters: true })
