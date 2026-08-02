@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { getSelectedUser, getStatusActions, type UserStatusAction } from '@/utils'
+import {
+  getSelectedUser,
+  getStatusActions,
+  type UserStatusAction,
+} from '@/utils'
 import { useUser } from '@/hooks'
 import { UserProfileHeader } from '@/components/features/UserProfileHeader'
 import {
@@ -109,7 +113,11 @@ function UserDetailsPage() {
         <h1 className={styles.title}>User Details</h1>
         <div className={styles.actions}>
           {getStatusActions(user.status).map((action) => (
-            <Button key={action} variant={ACTION_META[action].variant} size="sm">
+            <Button
+              key={action}
+              variant={ACTION_META[action].variant}
+              size="sm"
+            >
               {ACTION_META[action].label}
             </Button>
           ))}

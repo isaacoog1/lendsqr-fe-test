@@ -3,11 +3,7 @@ import { cn } from '@/utils'
 import styles from './Button.module.scss'
 
 export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'outline'
-  | 'outlinePrimary'
-  | 'danger'
+  'primary' | 'secondary' | 'outline' | 'outlinePrimary' | 'danger'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
