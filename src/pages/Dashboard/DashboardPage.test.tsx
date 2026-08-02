@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ERROR_MESSAGES, NO_RESPONSE } from '@/api/errors'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
 import {
@@ -15,6 +16,12 @@ vi.mock('@/services/users.service')
 
 const mockedList = vi.mocked(usersService.list)
 const mockedGetStats = vi.mocked(usersService.getStats)
+
+/** What the client hands up when a request never reached the API. */
+const unreachable = {
+  message: ERROR_MESSAGES.unreachable,
+  status: NO_RESPONSE,
+}
 
 function renderDashboard() {
   return renderWithProviders(<DashboardPage />, { route: '/dashboard' })
@@ -54,17 +61,20 @@ describe('DashboardPage', () => {
 
   describe('error state', () => {
     it('shows a retry affordance when the stats request fails', async () => {
-      mockedGetStats.mockRejectedValue({ message: 'Network Error', status: 0 })
+      mockedGetStats.mockRejectedValue(unreachable)
       renderDashboard()
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load users')).toBeInTheDocument()
       })
       expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      // Naming the real cause matters: an unreachable API is not something
+      // the user fixes by checking their own connection.
+      expect(screen.getByText(ERROR_MESSAGES.unreachable)).toBeInTheDocument()
     })
 
     it('shows a retry affordance when the recent-users request fails', async () => {
-      mockedList.mockRejectedValue({ message: 'Network Error', status: 0 })
+      mockedList.mockRejectedValue(unreachable)
       renderDashboard()
 
       await waitFor(() => {
@@ -74,10 +84,7 @@ describe('DashboardPage', () => {
 
     it('refetches when Retry is pressed', async () => {
       const user = userEvent.setup()
-      mockedGetStats.mockRejectedValueOnce({
-        message: 'Network Error',
-        status: 0,
-      })
+      mockedGetStats.mockRejectedValueOnce(unreachable)
       renderDashboard()
 
       await waitFor(() => {

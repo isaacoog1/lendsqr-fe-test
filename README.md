@@ -150,7 +150,9 @@ VITE_USERS_PATH=/users
 
 The `www` is deliberate. The apex domain answers with a 307 redirect, and a
 browser treats a redirected CORS preflight as a network error instead of
-following it.
+following it — one of several failures that look identical to a lost
+connection and are not one, which is why the client
+[sorts them apart](#network-error-is-not-no-internet).
 
 **No `Authorization` header.** There is no auth backend, so the stored token is
 a local marker that authenticates nothing, and these endpoints are public and
@@ -161,7 +163,7 @@ is not worth failing every request for.
 
 Bad input gets a 400 naming the parameter — *"status must be one of: active,
 inactive, pending, blacklisted"* — and the response interceptor already reads
-`error.response.data.message`, so those surface verbatim.
+`error.response.data.message`, so those reach the error state verbatim.
 
 ## Handling 500 records
 
@@ -206,6 +208,45 @@ The Users and Dashboard pages each depend on two endpoints. Both are covered by
 one loading state and one error state rather than four combinations of partial
 UI — a page that renders its stat cards beside an error where the table should
 be is claiming more than it knows. Retry refetches both.
+
+### "Network Error" is not "no internet"
+
+Axios raises the same `Network Error` for every failure that stopped a request
+before a response came back: the machine being offline, DNS not resolving, the
+API being down, a TLS or CORS rejection, an extension or corporate proxy
+blocking the call. Only the first of those is the user's connection, so
+_"please check your internet connection"_ is wrong most of the time — and it
+sends someone to reboot a router that was working fine. The 307 on the apex
+domain [described above](#the-api) is exactly this: a server-side redirect the
+browser reports as a network failure.
+
+`src/api/errors.ts` therefore sorts a rejection into four outcomes before the
+UI sees it:
+
+| Failure | Message says |
+| --- | --- |
+| `navigator.onLine === false` | you're offline, check your connection |
+| No response, but the browser has a network | we couldn't reach the server, it may be temporarily unavailable |
+| `ECONNABORTED` / `ETIMEDOUT` | the server took too long to respond |
+| The server answered | whatever the API said, carrying its status |
+
+`navigator.onLine` is read in one direction only. False is trustworthy — the
+browser knows it has no usable interface, so nothing could have left the
+machine. True is not: a captive portal, a dead API and a rejected preflight all
+report true. It can confirm the connection is at fault; it can never confirm
+that it isn't.
+
+Pages render the message the normalizer produced rather than a fixed sentence
+of their own, so a 400 naming a bad parameter, a dead API and an unplugged
+cable each read as themselves.
+
+React Query is set to `networkMode: 'always'` for the same reason. Its default
+pauses queries whenever the browser reports being offline, which leaves a page
+with no data, no error, and a Retry button that silently does nothing. Letting
+the request run always produces a failure the UI can name — and the attempt is
+a better test of connectivity than the flag. `refetchOnReconnect` is kept on,
+which that mode otherwise disables, so a page that failed while offline
+recovers on its own once the network returns.
 
 **Crash.** The root route carries an `errorElement` as a last line of defence.
 Without one, any render-time throw unmounts the whole tree and leaves a blank
@@ -368,11 +409,17 @@ rather than squeezing columns to nothing.
 
 ## Testing
 
-199 tests across 24 files. Roughly 94% of statements and 90% of branches.
+210 tests across 25 files. Roughly 94% of statements and 90% of branches.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is
 no test that the error state renders or that Retry actually refetches.
+
+Error normalization is tested a layer lower, against real `AxiosError`s, since
+that is the only place the difference between an offline machine and an
+unreachable server exists. `navigator.onLine` is stubbed both ways, and one
+test asserts the negative directly: when the browser has a network, the message
+must not mention the internet connection.
 
 Because the server does the filtering, the page's job is to ask the right
 question, not to narrow an array — so that is what the assertions check.

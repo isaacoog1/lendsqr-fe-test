@@ -441,11 +441,27 @@ Feature-specific hooks are preferred.
 
 # Error Handling
 
-Normalize API errors.
+Normalize API errors in `api/errors.ts`. The response interceptor delegates to
+it, so nothing above the client sees an Axios error.
 
 Display friendly UI messages.
 
 Never expose raw Axios errors directly to users.
+
+Never report a failed request as the user's internet connection unless
+`navigator.onLine` is false. Axios raises the same `Network Error` for an
+offline machine, a DNS failure, a dead API, a CORS rejection and a blocked
+request — four of those five are not the user's connection.
+
+`navigator.onLine` is trusted in one direction only: false proves there is no
+network, true proves nothing.
+
+Tell offline, unreachable server, timeout and HTTP errors apart, and let pages
+render the normalized message rather than hardcoding one.
+
+React Query runs with `networkMode: 'always'`. Its default pauses queries while
+the browser reports being offline, which leaves a page with no data, no error
+and a dead Retry button.
 
 Every request should support
 

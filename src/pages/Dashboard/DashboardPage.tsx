@@ -56,12 +56,20 @@ function DashboardPage() {
     !statsQuery.data ||
     !recentQuery.data
   ) {
+    // Whichever request failed first speaks for the page. Its message is
+    // already normalized, so it distinguishes an offline machine from an
+    // unreachable API from a server that answered with an error.
+    const error = statsQuery.error ?? recentQuery.error
+
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Dashboard</h1>
         <ErrorState
           title="Failed to load users"
-          message="We couldn't fetch the user data. Please try again."
+          message={
+            error?.message ??
+            "We couldn't fetch the user data. Please try again."
+          }
           action={
             <Button
               onClick={() => {

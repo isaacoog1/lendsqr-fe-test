@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { config } from '@/config/env'
+import { normalizeError } from './errors'
 
 /**
  * No `Authorization` header. There is no auth backend, so the stored token is
@@ -15,9 +16,14 @@ const client = axios.create({
     Accept: 'application/json',
   },
   timeout: 60000,
-  timeoutErrorMessage: 'Connection timeout, please try again.',
 })
 
+/**
+ * Every rejection leaves here as an `ApiError`. Cancellations are the one
+ * exception: React Query cancels in-flight requests itself and reads the
+ * signal, so turning one into an error would report a failure that no user
+ * caused and nothing needs to recover from.
+ */
 client.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -25,20 +31,7 @@ client.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    const status = error.response?.status
-    const message = error.response?.data?.message || 'Something went wrong'
-
-    if (error?.message === 'Network Error') {
-      return Promise.reject({
-        message: 'Please check your internet connection and try again.',
-        status: 0,
-      })
-    }
-
-    return Promise.reject({
-      message,
-      status,
-    })
+    return Promise.reject(normalizeError(error))
   },
 )
 

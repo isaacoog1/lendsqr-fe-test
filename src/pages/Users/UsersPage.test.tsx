@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ERROR_MESSAGES, NO_RESPONSE } from '@/api/errors'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
 import {
@@ -16,6 +17,12 @@ vi.mock('@/services/users.service')
 
 const mockedList = vi.mocked(usersService.list)
 const mockedGetStats = vi.mocked(usersService.getStats)
+
+/** What the client hands up when a request never reached the API. */
+const unreachable = {
+  message: ERROR_MESSAGES.unreachable,
+  status: NO_RESPONSE,
+}
 
 function renderUsersPage(route = '/users') {
   return renderWithProviders(<UsersPage />, { route })
@@ -72,7 +79,7 @@ describe('UsersPage', () => {
 
   describe('error state', () => {
     it('shows a retry affordance instead of an empty table', async () => {
-      mockedList.mockRejectedValue({ message: 'Network Error', status: 0 })
+      mockedList.mockRejectedValue(unreachable)
       renderUsersPage()
 
       await waitFor(() => {
@@ -82,10 +89,36 @@ describe('UsersPage', () => {
       expect(screen.queryByText('ORGANIZATION')).not.toBeInTheDocument()
     })
 
+    // A hardcoded "check your connection" would send a user to reboot a router
+    // that is working fine while the API is the thing that is down.
+    it('reports what actually failed instead of a fixed message', async () => {
+      mockedList.mockRejectedValue(unreachable)
+      renderUsersPage()
+
+      expect(
+        await screen.findByText(ERROR_MESSAGES.unreachable),
+      ).toBeInTheDocument()
+    })
+
+    it('surfaces the message the server sent for an HTTP error', async () => {
+      mockedList.mockRejectedValue({
+        message:
+          'status must be one of: active, inactive, pending, blacklisted',
+        status: 400,
+      })
+      renderUsersPage()
+
+      expect(
+        await screen.findByText(
+          'status must be one of: active, inactive, pending, blacklisted',
+        ),
+      ).toBeInTheDocument()
+    })
+
     // The cards and the table come from different endpoints; either one
     // failing leaves the page unable to say what it claims to say.
     it('reports a failure of the stats endpoint too', async () => {
-      mockedGetStats.mockRejectedValue({ message: 'Network Error', status: 0 })
+      mockedGetStats.mockRejectedValue(unreachable)
       renderUsersPage()
 
       await waitFor(() => {
@@ -95,7 +128,7 @@ describe('UsersPage', () => {
 
     it('refetches when Retry is pressed, and recovers', async () => {
       const user = userEvent.setup()
-      mockedList.mockRejectedValueOnce({ message: 'Network Error', status: 0 })
+      mockedList.mockRejectedValueOnce(unreachable)
       renderUsersPage()
 
       await waitFor(() => {

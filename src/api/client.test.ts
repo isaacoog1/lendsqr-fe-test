@@ -1,7 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
+import {
+  AxiosError,
+  AxiosHeaders,
+  CanceledError,
+  type AxiosAdapter,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import { STORAGE_KEYS } from '@/constants'
 import { apiClient } from './client'
+import { ERROR_MESSAGES, NO_RESPONSE } from './errors'
 
 const originalAdapter = apiClient.defaults.adapter
 
@@ -68,21 +76,30 @@ describe('apiClient', () => {
     })
   })
 
+  // The branch-by-branch copy lives in errors.test.ts. What matters here is
+  // that the interceptor hands every rejection to it, so nothing above the
+  // client ever sees a raw axios error.
   describe('error normalization', () => {
-    it('reports a connection failure in language a user can act on', async () => {
-      stubFailure(Object.assign(new Error('Network Error'), { config: {} }))
+    it('normalizes a transport failure', async () => {
+      stubFailure(new AxiosError('Network Error', AxiosError.ERR_NETWORK))
 
       await expect(apiClient.get('/users')).rejects.toEqual({
-        message: 'Please check your internet connection and try again.',
-        status: 0,
+        message: ERROR_MESSAGES.unreachable,
+        status: NO_RESPONSE,
       })
     })
 
     it('surfaces the server message and status for an HTTP error', async () => {
-      stubFailure({
-        message: 'Request failed with status code 404',
-        response: { status: 404, data: { message: 'User not found' } },
-      })
+      const error = new AxiosError('Request failed with status code 404')
+      error.response = {
+        status: 404,
+        data: { message: 'User not found' },
+        statusText: 'Not Found',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      } satisfies AxiosResponse
+
+      stubFailure(error)
 
       await expect(apiClient.get('/users')).rejects.toEqual({
         message: 'User not found',
@@ -90,16 +107,13 @@ describe('apiClient', () => {
       })
     })
 
-    it('falls back to a generic message when the body carries none', async () => {
-      stubFailure({
-        message: 'Request failed with status code 500',
-        response: { status: 500, data: {} },
-      })
+    // React Query cancels in-flight requests itself. Reporting one as a
+    // failure would put an error on screen that no user caused.
+    it('passes a cancellation through untouched', async () => {
+      const canceled = new CanceledError('canceled')
+      stubFailure(canceled)
 
-      await expect(apiClient.get('/users')).rejects.toEqual({
-        message: 'Something went wrong',
-        status: 500,
-      })
+      await expect(apiClient.get('/users')).rejects.toBe(canceled)
     })
   })
 

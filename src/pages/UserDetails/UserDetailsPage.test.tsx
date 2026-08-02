@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Routes, Route } from 'react-router-dom'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ERROR_MESSAGES, NO_RESPONSE } from '@/api/errors'
 import { STORAGE_KEYS } from '@/constants'
 import { buildUser } from '@/test/factories'
 import { usersService } from '@/services/users.service'
@@ -11,6 +12,12 @@ import UserDetailsPage from './UserDetailsPage'
 vi.mock('@/services/users.service')
 
 const mockedGetById = vi.mocked(usersService.getById)
+
+/** What the client hands up when a request never reached the API. */
+const unreachable = {
+  message: ERROR_MESSAGES.unreachable,
+  status: NO_RESPONSE,
+}
 
 const mockUser = buildUser({
   id: 'user-123',
@@ -144,10 +151,7 @@ describe('UserDetailsPage', () => {
     })
 
     it('offers a retry when the request failed rather than the user missing', async () => {
-      mockedGetById.mockRejectedValue({
-        message: 'Please check your internet connection and try again.',
-        status: 0,
-      })
+      mockedGetById.mockRejectedValue(unreachable)
       renderUserDetails()
 
       await waitFor(() => {
@@ -157,25 +161,20 @@ describe('UserDetailsPage', () => {
       expect(screen.queryByText('User not found')).not.toBeInTheDocument()
     })
 
-    it('surfaces the connection message rather than a generic one', async () => {
-      mockedGetById.mockRejectedValue({
-        message: 'Please check your internet connection and try again.',
-        status: 0,
-      })
+    // The reason the request failed is the one thing the user can act on, and
+    // an unreachable API is not the same problem as a dead connection.
+    it('names the failure rather than showing a fixed message', async () => {
+      mockedGetById.mockRejectedValue(unreachable)
       renderUserDetails()
 
-      await waitFor(() => {
-        expect(
-          screen.getByText(
-            'Please check your internet connection and try again.',
-          ),
-        ).toBeInTheDocument()
-      })
+      expect(
+        await screen.findByText(ERROR_MESSAGES.unreachable),
+      ).toBeInTheDocument()
     })
 
     it('refetches when Retry is pressed, and recovers', async () => {
       const user = userEvent.setup()
-      mockedGetById.mockRejectedValueOnce({ message: 'Network', status: 0 })
+      mockedGetById.mockRejectedValueOnce(unreachable)
       renderUserDetails()
 
       await waitFor(() => {

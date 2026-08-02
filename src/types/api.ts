@@ -1,5 +1,7 @@
 export interface ApiError {
+  /** Safe to render: written by the API or by `api/errors.ts`, never by axios. */
   message: string
+  /** The HTTP status, or `0` when the request never got a response. */
   status: number
 }
 
