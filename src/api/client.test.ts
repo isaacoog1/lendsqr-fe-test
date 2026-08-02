@@ -45,29 +45,23 @@ describe('apiClient', () => {
     it('resolves request paths against the configured base URL', async () => {
       const adapter = stubSuccess()
 
-      await apiClient.get('/users.json')
+      await apiClient.get('/users')
 
       const sent = adapter.mock.calls[0][0]
       expect(sent.baseURL).toBe(apiClient.defaults.baseURL)
-      expect(sent.url).toBe('/users.json')
+      expect(sent.url).toBe('/users')
     })
   })
 
   describe('auth header', () => {
-    it('attaches the stored token as a bearer credential', async () => {
+    // The users API is public and read-only, and the stored token
+    // authenticates nothing. Sending it would force a CORS preflight the API
+    // does not allow `Authorization` through, failing every request.
+    it('does not send a credential, even with a token stored', async () => {
       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'test-token')
       const adapter = stubSuccess()
 
-      await apiClient.get('/users.json')
-
-      const sent = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
-      expect(sent.headers.Authorization).toBe('Bearer test-token')
-    })
-
-    it('omits the header entirely when no token is stored', async () => {
-      const adapter = stubSuccess()
-
-      await apiClient.get('/users.json')
+      await apiClient.get('/users')
 
       const sent = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
       expect(sent.headers.Authorization).toBeUndefined()
@@ -78,7 +72,7 @@ describe('apiClient', () => {
     it('reports a connection failure in language a user can act on', async () => {
       stubFailure(Object.assign(new Error('Network Error'), { config: {} }))
 
-      await expect(apiClient.get('/users.json')).rejects.toEqual({
+      await expect(apiClient.get('/users')).rejects.toEqual({
         message: 'Please check your internet connection and try again.',
         status: 0,
       })
@@ -90,7 +84,7 @@ describe('apiClient', () => {
         response: { status: 404, data: { message: 'User not found' } },
       })
 
-      await expect(apiClient.get('/users.json')).rejects.toEqual({
+      await expect(apiClient.get('/users')).rejects.toEqual({
         message: 'User not found',
         status: 404,
       })
@@ -102,7 +96,7 @@ describe('apiClient', () => {
         response: { status: 500, data: {} },
       })
 
-      await expect(apiClient.get('/users.json')).rejects.toEqual({
+      await expect(apiClient.get('/users')).rejects.toEqual({
         message: 'Something went wrong',
         status: 500,
       })
@@ -113,7 +107,7 @@ describe('apiClient', () => {
     it('passes the body through untouched on success', async () => {
       stubSuccess([{ id: 'user-1' }])
 
-      const response = await apiClient.get('/users.json')
+      const response = await apiClient.get('/users')
 
       expect(response.data).toEqual([{ id: 'user-1' }])
     })

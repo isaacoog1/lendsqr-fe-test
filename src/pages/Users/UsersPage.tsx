@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useUsers } from '@/hooks'
+import { useUsers, useUserStats } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
-import { UsersTable } from '@/components/features/UsersTable'
+import { UsersTable, type SortState } from '@/components/features/UsersTable'
 import type { FilterFormData } from '@/components/features/UserFilters'
 import {
   Skeleton,
@@ -12,72 +11,16 @@ import {
   Button,
 } from '@/components/ui'
 import { dashboardStats } from '@/config/dashboardStats'
-import type { User } from '@/types'
+import {
+  FILTER_KEYS,
+  hasActiveFilters,
+  parseUsersQuery,
+  toFilterValues,
+} from './usersQuery'
 import styles from './UsersPage.module.scss'
 
-/**
- * `<input type="date">` yields a calendar date in the viewer's timezone, so the
- * stored ISO timestamp has to be compared the same way. Formatting it as UTC
- * shifts the day for anyone east of Greenwich who joined late in the evening.
- */
-function isSameLocalDay(isoTimestamp: string, calendarDate: string): boolean {
-  const joined = new Date(isoTimestamp)
-  const [year, month, day] = calendarDate.split('-').map(Number)
-
-  return (
-    joined.getFullYear() === year &&
-    joined.getMonth() + 1 === month &&
-    joined.getDate() === day
-  )
-}
-
-function applyFilters(users: User[], filters: FilterFormData): User[] {
-  return users.filter((user) => {
-    if (filters.organization && user.organization !== filters.organization) {
-      return false
-    }
-    if (
-      filters.username &&
-      !user.username.toLowerCase().includes(filters.username.toLowerCase())
-    ) {
-      return false
-    }
-    if (
-      filters.email &&
-      !user.email.toLowerCase().includes(filters.email.toLowerCase())
-    ) {
-      return false
-    }
-    if (
-      filters.phoneNumber &&
-      !user.phoneNumber.includes(filters.phoneNumber)
-    ) {
-      return false
-    }
-    if (
-      filters.dateJoined &&
-      !isSameLocalDay(user.dateJoined, filters.dateJoined)
-    ) {
-      return false
-    }
-    if (filters.status && user.status !== filters.status) {
-      return false
-    }
-    return true
-  })
-}
-
-function applySearch(users: User[], query: string): User[] {
-  if (!query) return users
-  const lower = query.toLowerCase()
-  return users.filter(
-    (user) =>
-      user.personalInfo.fullName.toLowerCase().includes(lower) ||
-      user.username.toLowerCase().includes(lower) ||
-      user.email.toLowerCase().includes(lower) ||
-      user.phoneNumber.includes(query),
-  )
-}
+/** Values written into the URL. `undefined` and `''` remove the parameter. */
+type QueryPatch = Record<string, string | number | undefined>
 
 function UsersPageSkeleton() {
   return (
@@ -102,107 +45,118 @@ function UsersPageSkeleton() {
 }
 
 function UsersPage() {
-  const { data: users, isLoading, isError, refetch } = useUsers()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [filters, setFilters] = useState<FilterFormData>({})
 
-  // Search is driven by the header field, which submits to ?q= so a filtered
-  // list stays shareable and survives a refresh.
-  const searchQuery = searchParams.get('q')?.trim() ?? ''
+  // The URL is the single source of truth for what the table shows, so a
+  // filtered, sorted, paged view can be linked to and survives a refresh.
+  const query = parseUsersQuery(searchParams)
 
-  const clearSearch = () => {
+  const usersQuery = useUsers(query)
+  const statsQuery = useUserStats()
+
+  /**
+   * Every change except paging resets to page one — applying a filter while on
+   * page twelve otherwise lands on a page the narrowed result set no longer
+   * has. Replaces rather than pushes so paging does not fill the back button
+   * with twenty near-identical entries.
+   */
+  const updateQuery = (patch: QueryPatch, { resetPage = true } = {}) => {
     const next = new URLSearchParams(searchParams)
-    next.delete('q')
+
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined || value === '') {
+        next.delete(key)
+      } else {
+        next.set(key, String(value))
+      }
+    }
+
+    if (resetPage) {
+      next.delete('page')
+    }
+
     setSearchParams(next, { replace: true })
   }
 
-  const organizations = useMemo(() => {
-    if (!users) return []
-    return [...new Set(users.map((u) => u.organization))].sort()
-  }, [users])
+  const applyFilters = (filters: FilterFormData) => updateQuery({ ...filters })
 
-  const filteredUsers = useMemo(() => {
-    if (!users) return []
-    const afterFilters = applyFilters(users, filters)
-    return applySearch(afterFilters, searchQuery)
-  }, [users, filters, searchQuery])
+  const clearFilters = () => {
+    updateQuery({
+      q: undefined,
+      ...Object.fromEntries(FILTER_KEYS.map((key) => [key, undefined])),
+    })
+  }
 
-  const stats = useMemo(() => {
-    if (!users) return []
-    return dashboardStats.map((stat) => ({
-      ...stat,
-      computedValue: stat.getValue(users),
-    }))
-  }, [users])
+  const applySort = ({ sortBy, sortOrder }: SortState) =>
+    updateQuery({ sortBy, sortOrder })
 
-  if (isLoading) {
+  // Both requests describe this page, so one skeleton and one error state
+  // cover them. They run in parallel and the stats response is cached across
+  // the dashboard, so in practice they resolve together.
+  if (usersQuery.isLoading || statsQuery.isLoading) {
     return <UsersPageSkeleton />
   }
 
-  if (isError) {
+  if (
+    usersQuery.isError ||
+    statsQuery.isError ||
+    !usersQuery.data ||
+    !statsQuery.data
+  ) {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Users</h1>
         <ErrorState
           title="Failed to load users"
           message="We couldn't fetch the user data. Please try again."
-          action={<Button onClick={() => refetch()}>Retry</Button>}
+          action={
+            <Button
+              onClick={() => {
+                usersQuery.refetch()
+                statsQuery.refetch()
+              }}
+            >
+              Retry
+            </Button>
+          }
         />
       </div>
     )
   }
 
-  if (!users || users.length === 0) {
-    return (
-      <div className={styles.page}>
-        <h1 className={styles.title}>Users</h1>
-        <EmptyState
-          title="No users found"
-          description="There are no users to display at this time."
-        />
-      </div>
-    )
-  }
-
-  const hasActiveFilters = Object.values(filters).some((value) => !!value)
-  const isNarrowed = hasActiveFilters || !!searchQuery
-  const noResults = filteredUsers.length === 0
+  const { users, pagination } = usersQuery.data
+  const stats = statsQuery.data
+  const isNarrowed = hasActiveFilters(query) || !!query.search
 
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Users</h1>
 
       <div className={styles.stats}>
-        {stats.map((stat) => (
+        {dashboardStats.map((stat) => (
           <StatCard
             key={stat.label}
             icon={stat.icon}
             iconColor={stat.iconColor}
             iconBgColor={stat.iconBgColor}
             label={stat.label}
-            value={stat.computedValue}
+            value={stat.getValue(stats)}
           />
         ))}
       </div>
 
       <div className={styles.tableSection}>
-        {noResults ? (
+        {pagination.total === 0 ? (
           <EmptyState
-            title="No results found"
+            title={isNarrowed ? 'No results found' : 'No users found'}
             description={
               isNarrowed
                 ? 'Try adjusting your search or filter criteria.'
-                : 'There are no users to display.'
+                : 'There are no users to display at this time.'
             }
             action={
               isNarrowed && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFilters({})
-                    clearSearch()
-                  }}
-                >
+                <Button variant="outline" onClick={clearFilters}>
                   Clear Filters
                 </Button>
               )
@@ -210,12 +164,18 @@ function UsersPage() {
           />
         ) : (
           <UsersTable
-            data={filteredUsers}
+            data={users}
+            pagination={pagination}
+            sort={{ sortBy: query.sortBy, sortOrder: query.sortOrder }}
+            onSortChange={applySort}
+            onPageChange={(page) => updateQuery({ page }, { resetPage: false })}
+            onPageSizeChange={(perPage) => updateQuery({ perPage })}
             filters={{
-              organizations,
-              isActive: hasActiveFilters,
-              onApply: setFilters,
-              onReset: () => setFilters({}),
+              organizations: stats.organizations,
+              values: toFilterValues(query),
+              isActive: hasActiveFilters(query),
+              onApply: applyFilters,
+              onReset: clearFilters,
             }}
           />
         )}

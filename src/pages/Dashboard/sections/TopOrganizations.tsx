@@ -1,13 +1,11 @@
-import type { User } from '@/types'
-import { topOrganizations } from '../dashboardInsights'
+import type { OrganizationRow } from '@/types'
 import styles from './sections.module.scss'
 
 interface TopOrganizationsProps {
-  users: User[]
+  rows: OrganizationRow[]
 }
 
-function TopOrganizations({ users }: TopOrganizationsProps) {
-  const rows = topOrganizations(users)
+function TopOrganizations({ rows }: TopOrganizationsProps) {
   // Bars are scaled against the leader rather than the total: with ten
   // organizations, share-of-total would render every bar as a sliver.
   const largest = rows[0]?.count ?? 0

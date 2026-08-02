@@ -37,24 +37,22 @@ function UserDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState('general')
 
-  // Read once per mount. In the render body this was a localStorage read plus
-  // a JSON.parse of a full user on every re-render, including each tab switch.
-  const [cachedUser] = useState(getSelectedUser)
-  const shouldFetch = !cachedUser || cachedUser.id !== id
+  // Read once per mount, not on every re-render. The list only carries a
+  // summary, so this names who is loading rather than standing in for them.
+  const [selected] = useState(getSelectedUser)
 
-  const {
-    data: fetchedUser,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useUser(id, { enabled: shouldFetch })
+  const { data: user, isLoading, isError, error, refetch } = useUser(id)
 
-  const user = shouldFetch ? fetchedUser : cachedUser
+  if (isLoading) {
+    // The selection carries a username, so the skeleton can say whose record
+    // is on its way instead of announcing an anonymous wait.
+    const label =
+      selected && selected.id === id
+        ? `Loading ${selected.username}`
+        : 'Loading user details'
 
-  if (isLoading && shouldFetch) {
     return (
-      <SkeletonGroup label="Loading user details" className={styles.page}>
+      <SkeletonGroup label={label} className={styles.page}>
         <Skeleton width="120px" height="16px" />
         <div className={styles.skeletonHeader}>
           <Skeleton variant="circular" width="100px" height="100px" />

@@ -1,18 +1,19 @@
 import { Users, UserCheck, FileText, Coins } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { User } from '@/types'
+import type { UserStats } from '@/types'
 
 export interface DashboardStat {
   icon: LucideIcon
   iconColor: string
   iconBgColor: string
   label: string
-  getValue: (users: User[]) => string
+  getValue: (stats: UserStats) => string
 }
 
 /**
- * Shared by the Dashboard and Users pages. Every value is counted from the
- * dataset — none are hardcoded or derived from an assumed ratio.
+ * Shared by the Dashboard and Users pages. Every figure is counted server-side
+ * over all 500 records, so the cards report platform totals and do not move
+ * when the table below them is filtered.
  */
 export const dashboardStats: DashboardStat[] = [
   {
@@ -20,30 +21,27 @@ export const dashboardStats: DashboardStat[] = [
     iconColor: '#DF18FF',
     iconBgColor: '#DF18FF1A',
     label: 'USERS',
-    getValue: (users) => users.length.toLocaleString(),
+    getValue: (stats) => stats.totalUsers.toLocaleString(),
   },
   {
     icon: UserCheck,
     iconColor: '#5718FF',
     iconBgColor: '#5718FF1A',
     label: 'ACTIVE USERS',
-    getValue: (users) =>
-      users.filter((user) => user.status === 'active').length.toLocaleString(),
+    getValue: (stats) => stats.activeUsers.toLocaleString(),
   },
   {
     icon: FileText,
     iconColor: '#F55F44',
     iconBgColor: '#F55F441A',
     label: 'USERS WITH LOANS',
-    getValue: (users) =>
-      users.filter((user) => user.hasLoan).length.toLocaleString(),
+    getValue: (stats) => stats.usersWithLoans.toLocaleString(),
   },
   {
     icon: Coins,
     iconColor: '#FF3366',
     iconBgColor: '#FF33661A',
     label: 'USERS WITH SAVINGS',
-    getValue: (users) =>
-      users.filter((user) => user.hasSavings).length.toLocaleString(),
+    getValue: (stats) => stats.usersWithSavings.toLocaleString(),
   },
 ]

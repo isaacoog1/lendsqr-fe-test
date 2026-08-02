@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
-import { buildUsers } from '@/test/factories'
+import { buildPaginatedUsers, buildUserStats } from '@/test/factories'
 import { renderRoutes } from '@/test/renderWithProviders'
 import { routes } from './routes'
 
@@ -15,7 +15,8 @@ function renderAt(route: string) {
 describe('routes', () => {
   beforeEach(() => {
     localStorage.clear()
-    vi.mocked(usersService.getAll).mockResolvedValue(buildUsers(3))
+    vi.mocked(usersService.list).mockResolvedValue(buildPaginatedUsers())
+    vi.mocked(usersService.getStats).mockResolvedValue(buildUserStats())
   })
 
   describe('unauthenticated', () => {

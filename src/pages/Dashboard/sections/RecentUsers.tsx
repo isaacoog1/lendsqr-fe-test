@@ -1,17 +1,15 @@
 import { Link } from 'react-router-dom'
 import { Avatar, Badge } from '@/components/ui'
 import { formatDate, saveSelectedUser } from '@/utils'
-import type { User } from '@/types'
-import { recentlyJoined } from '../dashboardInsights'
+import type { UserSummary } from '@/types'
 import styles from './sections.module.scss'
 
 interface RecentUsersProps {
-  users: User[]
+  /** Already sorted newest first by the API. */
+  users: UserSummary[]
 }
 
 function RecentUsers({ users }: RecentUsersProps) {
-  const rows = recentlyJoined(users)
-
   return (
     <section className={styles.card} aria-labelledby="recent-users-title">
       <div className={styles.cardHeader}>
@@ -24,21 +22,18 @@ function RecentUsers({ users }: RecentUsersProps) {
       </div>
 
       <ul className={styles.list}>
-        {rows.map((user) => (
+        {users.map((user) => (
           <li key={user.id}>
             <Link
               to={`/users/${user.id}`}
               className={styles.recentRow}
-              // Mirrors the users table: seed the cache so the details page
-              // renders without waiting on a request.
+              // Mirrors the users table: record the selection before leaving.
               onClick={() => saveSelectedUser(user)}
             >
-              <Avatar name={user.personalInfo.fullName} size="sm" />
+              <Avatar name={user.username} size="sm" />
 
               <span className={styles.recentIdentity}>
-                <span className={styles.recentName}>
-                  {user.personalInfo.fullName}
-                </span>
+                <span className={styles.recentName}>{user.username}</span>
                 <span className={styles.recentMeta}>{user.organization}</span>
               </span>
 

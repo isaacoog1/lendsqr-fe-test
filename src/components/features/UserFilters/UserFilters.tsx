@@ -10,6 +10,9 @@ import styles from './UserFilters.module.scss'
 
 interface UserFiltersProps {
   organizations: string[]
+  /** What is currently applied. The panel unmounts on close, so without this
+   * reopening it would show an empty form over a filtered table. */
+  values?: FilterFormData
   onApply: (filters: FilterFormData) => void
   onReset: () => void
   isOpen: boolean
@@ -25,6 +28,7 @@ const STATUS_OPTIONS = [
 
 function UserFilters({
   organizations,
+  values = EMPTY_FILTERS,
   onApply,
   onReset,
   isOpen,
@@ -32,7 +36,7 @@ function UserFilters({
 }: UserFiltersProps) {
   const { register, handleSubmit, reset } = useForm<FilterFormData>({
     resolver: zodResolver(filterSchema),
-    defaultValues: EMPTY_FILTERS,
+    defaultValues: values,
   })
 
   const organizationOptions = organizations.map((org) => ({

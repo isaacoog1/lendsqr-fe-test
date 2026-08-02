@@ -1,4 +1,10 @@
-import type { User } from '@/types'
+import type {
+  PaginatedUsers,
+  Pagination,
+  User,
+  UserStats,
+  UserSummary,
+} from '@/types'
 
 let sequence = 0
 
@@ -68,4 +74,78 @@ export function buildUsers(
   overrides: Partial<User> = {},
 ): User[] {
   return Array.from({ length: count }, () => buildUser(overrides))
+}
+
+/** One row as the list endpoint returns it — no nested detail sections. */
+export function buildUserSummary(
+  overrides: Partial<UserSummary> = {},
+): UserSummary {
+  const { id, organization, username, email, phoneNumber, dateJoined, status } =
+    buildUser()
+
+  return {
+    id,
+    organization,
+    username,
+    email,
+    phoneNumber,
+    dateJoined,
+    status,
+    ...overrides,
+  }
+}
+
+export function buildUserSummaries(
+  count: number,
+  overrides: Partial<UserSummary> = {},
+): UserSummary[] {
+  return Array.from({ length: count }, () => buildUserSummary(overrides))
+}
+
+/**
+ * A list response. `total` defaults to the number of rows given, so a test
+ * that does not care about paging gets a coherent single page.
+ */
+export function buildPaginatedUsers(
+  users: UserSummary[] = buildUserSummaries(3),
+  pagination: Partial<Pagination> = {},
+): PaginatedUsers {
+  const page = pagination.page ?? 1
+  const perPage = pagination.perPage ?? 20
+  const total = pagination.total ?? users.length
+  const totalPages = pagination.totalPages ?? Math.ceil(total / perPage)
+
+  return {
+    users,
+    pagination: {
+      page,
+      perPage,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+      ...pagination,
+    },
+  }
+}
+
+export function buildUserStats(overrides: Partial<UserStats> = {}): UserStats {
+  return {
+    totalUsers: 500,
+    activeUsers: 122,
+    usersWithLoans: 191,
+    usersWithSavings: 289,
+    statusBreakdown: [
+      { status: 'active', count: 122, percentage: 24 },
+      { status: 'inactive', count: 126, percentage: 25 },
+      { status: 'pending', count: 121, percentage: 24 },
+      { status: 'blacklisted', count: 131, percentage: 26 },
+    ],
+    topOrganizations: [
+      { organization: 'Lendsqr', count: 63 },
+      { organization: 'PiggyVest', count: 59 },
+    ],
+    organizations: ['Lendsqr', 'Lendstar', 'PiggyVest'],
+    ...overrides,
+  }
 }

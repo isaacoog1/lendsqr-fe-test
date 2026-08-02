@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '@/constants'
-import type { User } from '@/types'
+import type { UserSummary } from '@/types'
 
 export const storage = {
   get<T>(key: string): T | null {
@@ -24,12 +24,17 @@ export const storage = {
   },
 }
 
-export function saveSelectedUser(user: User): void {
+/**
+ * Records which user was opened from a list. Lists carry summaries — the full
+ * record only exists behind `GET /users/:id` — so this persists the selection
+ * rather than caching a whole user.
+ */
+export function saveSelectedUser(user: UserSummary): void {
   storage.set(STORAGE_KEYS.SELECTED_USER, user)
 }
 
-export function getSelectedUser(): User | null {
-  return storage.get<User>(STORAGE_KEYS.SELECTED_USER)
+export function getSelectedUser(): UserSummary | null {
+  return storage.get<UserSummary>(STORAGE_KEYS.SELECTED_USER)
 }
 
 export function clearSelectedUser(): void {

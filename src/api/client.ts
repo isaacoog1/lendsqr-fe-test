@@ -1,7 +1,14 @@
 import axios from 'axios'
 import { config } from '@/config/env'
-import { STORAGE_KEYS } from '@/constants'
 
+/**
+ * No `Authorization` header. There is no auth backend, so the stored token is
+ * a local marker that authenticates nothing, and the users API is public and
+ * read-only. Sending it would also break every request: the header is not
+ * CORS-safelisted, so it forces a preflight, and the API answers preflight
+ * with `Access-Control-Allow-Headers: Content-Type`. A credential that proves
+ * nothing is not worth failing every request for.
+ */
 const client = axios.create({
   baseURL: config.apiBaseUrl,
   headers: {
@@ -10,17 +17,6 @@ const client = axios.create({
   timeout: 60000,
   timeoutErrorMessage: 'Connection timeout, please try again.',
 })
-
-client.interceptors.request.use(
-  (requestConfig) => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-    if (token) {
-      requestConfig.headers.Authorization = `Bearer ${token}`
-    }
-    return requestConfig
-  },
-  (error) => Promise.reject(error),
-)
 
 client.interceptors.response.use(
   (response) => response,

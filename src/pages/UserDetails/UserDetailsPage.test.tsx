@@ -29,9 +29,23 @@ function renderUserDetails(userId = 'user-123') {
   )
 }
 
-/** Seeds the cache the users table writes to before navigating. */
-function cacheSelectedUser() {
-  localStorage.setItem(STORAGE_KEYS.SELECTED_USER, JSON.stringify(mockUser))
+/** Records a selection the way the users table does before navigating. */
+function selectUser(user = mockUser) {
+  const { id, organization, username, email, phoneNumber, dateJoined, status } =
+    user
+
+  localStorage.setItem(
+    STORAGE_KEYS.SELECTED_USER,
+    JSON.stringify({
+      id,
+      organization,
+      username,
+      email,
+      phoneNumber,
+      dateJoined,
+      status,
+    }),
+  )
 }
 
 describe('UserDetailsPage', () => {
@@ -45,35 +59,37 @@ describe('UserDetailsPage', () => {
     })
   })
 
-  describe('from the local cache', () => {
-    it('renders immediately without a request', () => {
-      cacheSelectedUser()
-      renderUserDetails()
-
-      expect(screen.getByText('User Details')).toBeInTheDocument()
-      expect(screen.getAllByText('Grace Effiom').length).toBeGreaterThan(0)
-      expect(mockedGetById).not.toHaveBeenCalled()
-    })
-
-    it('renders the account balance and tier', () => {
-      cacheSelectedUser()
-      renderUserDetails()
-
-      expect(screen.getByText('₦200,000.00')).toBeInTheDocument()
-      expect(screen.getByLabelText('Tier 2 of 3')).toBeInTheDocument()
-    })
-
-    it('ignores a cached user whose id does not match the route', async () => {
-      localStorage.setItem(
-        STORAGE_KEYS.SELECTED_USER,
-        JSON.stringify(buildUser({ id: 'someone-else' })),
-      )
+  // The list endpoint carries a summary per user — no personal details, bank
+  // details or tier — so the full record is always fetched.
+  describe('the stored selection', () => {
+    it('fetches even when the selected user matches the route', async () => {
+      selectUser()
       mockedGetById.mockResolvedValue(mockUser)
-      renderUserDetails('user-123')
+      renderUserDetails()
 
       await waitFor(() => {
         expect(mockedGetById).toHaveBeenCalledWith('user-123')
       })
+    })
+
+    it('names the user in the loading skeleton', () => {
+      selectUser()
+      mockedGetById.mockReturnValue(new Promise(() => {}))
+      renderUserDetails()
+
+      expect(
+        screen.getByRole('status', { name: 'Loading grace_effiom' }),
+      ).toBeInTheDocument()
+    })
+
+    it('falls back to a generic label when the selection is someone else', () => {
+      selectUser(buildUser({ id: 'someone-else', username: 'other' }))
+      mockedGetById.mockReturnValue(new Promise(() => {}))
+      renderUserDetails('user-123')
+
+      expect(
+        screen.getByRole('status', { name: 'Loading user details' }),
+      ).toBeInTheDocument()
     })
   })
 
@@ -87,7 +103,7 @@ describe('UserDetailsPage', () => {
       ).toBeInTheDocument()
     })
 
-    it('renders the fetched user when nothing is cached', async () => {
+    it('renders the fetched record', async () => {
       mockedGetById.mockResolvedValue(mockUser)
       renderUserDetails()
 
@@ -95,6 +111,16 @@ describe('UserDetailsPage', () => {
         expect(screen.getByText('User Details')).toBeInTheDocument()
       })
       expect(screen.getAllByText('Grace Effiom').length).toBeGreaterThan(0)
+    })
+
+    it('renders the account balance and tier from the full record', async () => {
+      mockedGetById.mockResolvedValue(mockUser)
+      renderUserDetails()
+
+      await waitFor(() => {
+        expect(screen.getByText('₦200,000.00')).toBeInTheDocument()
+      })
+      expect(screen.getByLabelText('Tier 2 of 3')).toBeInTheDocument()
     })
 
     it('shows an error state when the user does not exist', async () => {
@@ -166,11 +192,13 @@ describe('UserDetailsPage', () => {
   })
 
   describe('tabs', () => {
-    beforeEach(cacheSelectedUser)
+    beforeEach(async () => {
+      mockedGetById.mockResolvedValue(mockUser)
+      renderUserDetails()
+      await screen.findByText('User Details')
+    })
 
     it('renders every section tab', () => {
-      renderUserDetails()
-
       const labels = [
         'General Details',
         'Documents',
@@ -185,8 +213,6 @@ describe('UserDetailsPage', () => {
     })
 
     it('renders general details by default', () => {
-      renderUserDetails()
-
       expect(screen.getByText('Personal Information')).toBeInTheDocument()
       expect(screen.getByText('Education and Employment')).toBeInTheDocument()
       expect(screen.getByText('Socials')).toBeInTheDocument()
@@ -195,7 +221,6 @@ describe('UserDetailsPage', () => {
 
     it('swaps the panel when another tab is selected', async () => {
       const user = userEvent.setup()
-      renderUserDetails()
 
       await user.click(screen.getByRole('tab', { name: 'Bank Details' }))
 
@@ -205,9 +230,10 @@ describe('UserDetailsPage', () => {
   })
 
   describe('actions', () => {
-    it('renders blacklist and activate buttons', () => {
-      cacheSelectedUser()
+    it('renders blacklist and activate buttons', async () => {
+      mockedGetById.mockResolvedValue(mockUser)
       renderUserDetails()
+      await screen.findByText('User Details')
 
       expect(
         screen.getByRole('button', { name: 'BLACKLIST USER' }),

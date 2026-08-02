@@ -6,9 +6,9 @@ import {
   clearSelectedUser,
 } from './storage'
 import { STORAGE_KEYS } from '@/constants'
-import { buildUser } from '@/test/factories'
+import { buildUserSummary } from '@/test/factories'
 
-const mockUser = buildUser({ id: '1', username: 'grace_effiom' })
+const mockUser = buildUserSummary({ id: '1', username: 'grace_effiom' })
 
 describe('storage', () => {
   beforeEach(() => {

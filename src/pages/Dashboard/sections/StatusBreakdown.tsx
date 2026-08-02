@@ -1,15 +1,12 @@
 import { Badge } from '@/components/ui'
-import type { User } from '@/types'
-import { breakdownByStatus } from '../dashboardInsights'
+import type { StatusBreakdownRow } from '@/types'
 import styles from './sections.module.scss'
 
 interface StatusBreakdownProps {
-  users: User[]
+  rows: StatusBreakdownRow[]
 }
 
-function StatusBreakdown({ users }: StatusBreakdownProps) {
-  const rows = breakdownByStatus(users)
-
+function StatusBreakdown({ rows }: StatusBreakdownProps) {
   return (
     <section className={styles.card} aria-labelledby="status-breakdown-title">
       <h2 id="status-breakdown-title" className={styles.cardTitle}>

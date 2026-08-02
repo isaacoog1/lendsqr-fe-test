@@ -1,4 +1,4 @@
-import { useUsers } from '@/hooks'
+import { useUsers, useUserStats } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
 import {
   Button,
@@ -10,6 +10,8 @@ import {
 import { dashboardStats } from '@/config/dashboardStats'
 import { StatusBreakdown, TopOrganizations, RecentUsers } from './sections'
 import styles from './DashboardPage.module.scss'
+
+const RECENT_USER_COUNT = 5
 
 function DashboardSkeleton() {
   return (
@@ -34,26 +36,50 @@ function DashboardSkeleton() {
 }
 
 function DashboardPage() {
-  const { data: users, isLoading, isError, refetch } = useUsers()
+  const statsQuery = useUserStats()
 
-  if (isLoading) {
+  // The API sorts and slices, so "five most recent" is a query rather than a
+  // derivation over every record.
+  const recentQuery = useUsers({
+    sortBy: 'dateJoined',
+    sortOrder: 'desc',
+    perPage: RECENT_USER_COUNT,
+  })
+
+  if (statsQuery.isLoading || recentQuery.isLoading) {
     return <DashboardSkeleton />
   }
 
-  if (isError) {
+  if (
+    statsQuery.isError ||
+    recentQuery.isError ||
+    !statsQuery.data ||
+    !recentQuery.data
+  ) {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Dashboard</h1>
         <ErrorState
           title="Failed to load users"
           message="We couldn't fetch the user data. Please try again."
-          action={<Button onClick={() => refetch()}>Retry</Button>}
+          action={
+            <Button
+              onClick={() => {
+                statsQuery.refetch()
+                recentQuery.refetch()
+              }}
+            >
+              Retry
+            </Button>
+          }
         />
       </div>
     )
   }
 
-  if (!users || users.length === 0) {
+  const stats = statsQuery.data
+
+  if (stats.totalUsers === 0) {
     return (
       <div className={styles.page}>
         <h1 className={styles.title}>Dashboard</h1>
@@ -70,7 +96,7 @@ function DashboardPage() {
       <header className={styles.heading}>
         <h1 className={styles.title}>Dashboard</h1>
         <p className={styles.subtitle}>
-          An overview of {users.length.toLocaleString()} users across the
+          An overview of {stats.totalUsers.toLocaleString()} users across the
           platform.
         </p>
       </header>
@@ -83,17 +109,17 @@ function DashboardPage() {
             iconColor={stat.iconColor}
             iconBgColor={stat.iconBgColor}
             label={stat.label}
-            value={stat.getValue(users)}
+            value={stat.getValue(stats)}
           />
         ))}
       </div>
 
       <div className={styles.panels}>
-        <StatusBreakdown users={users} />
-        <TopOrganizations users={users} />
+        <StatusBreakdown rows={stats.statusBreakdown} />
+        <TopOrganizations rows={stats.topOrganizations} />
       </div>
 
-      <RecentUsers users={users} />
+      <RecentUsers users={recentQuery.data.users} />
     </div>
   )
 }

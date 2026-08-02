@@ -3,9 +3,8 @@ import {
   useReactTable,
   createColumnHelper,
   getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   flexRender,
+  type OnChangeFn,
   type SortingState,
 } from '@tanstack/react-table'
 import {
@@ -19,8 +18,15 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { User, UserStatus } from '@/types'
+import type {
+  Pagination as PaginationState,
+  SortOrder,
+  UserSortField,
+  UserStatus,
+  UserSummary,
+} from '@/types'
 import { cn, formatDate, saveSelectedUser } from '@/utils'
+import { USER_SORT_FIELDS } from '@/constants'
 import { Badge, Dropdown, Pagination } from '@/components/ui'
 import {
   UserFilters,
@@ -28,7 +34,10 @@ import {
 } from '@/components/features/UserFilters'
 import styles from './UsersTable.module.scss'
 
-const PAGE_SIZE = 20
+export interface SortState {
+  sortBy?: UserSortField
+  sortOrder?: SortOrder
+}
 
 function getActionsForStatus(status: UserStatus, onViewDetails: () => void) {
   const viewDetails = {
@@ -66,25 +75,65 @@ function getActionsForStatus(status: UserStatus, onViewDetails: () => void) {
   }
 }
 
-const columnHelper = createColumnHelper<User>()
+const columnHelper = createColumnHelper<UserSummary>()
 
 interface FilterConfig {
   organizations: string[]
+  /** What is applied, so reopening the panel shows it. */
+  values: FilterFormData
   isActive: boolean
   onApply: (filters: FilterFormData) => void
   onReset: () => void
 }
 
 interface UsersTableProps {
-  data: User[]
+  data: UserSummary[]
+  /** Page metadata from the server — the table does not slice rows itself. */
+  pagination: PaginationState
+  sort: SortState
+  onSortChange: (sort: SortState) => void
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
   /** Omit to render the table without the header filter affordance. */
   filters?: FilterConfig
 }
 
-function UsersTable({ data, filters }: UsersTableProps) {
+function UsersTable({
+  data,
+  pagination,
+  sort,
+  onSortChange,
+  onPageChange,
+  onPageSizeChange,
+  filters,
+}: UsersTableProps) {
   const navigate = useNavigate()
-  const [sorting, setSorting] = useState<SortingState>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // The API describes sorting as two scalars; TanStack Table wants a list.
+  // Translating at this boundary keeps the table's shape out of the URL.
+  const sorting: SortingState = sort.sortBy
+    ? [{ id: sort.sortBy, desc: sort.sortOrder === 'desc' }]
+    : []
+
+  const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
+    const next = typeof updater === 'function' ? updater(sorting) : updater
+    const [column] = next
+
+    if (!column) {
+      onSortChange({})
+      return
+    }
+
+    // Column ids and the API's sortable fields happen to be the same strings,
+    // but only the six accessor columns are sortable — matching against the
+    // service's list turns that coincidence into something TypeScript checks.
+    const sortBy = USER_SORT_FIELDS.find((field) => field === column.id)
+
+    onSortChange(
+      sortBy ? { sortBy, sortOrder: column.desc ? 'desc' : 'asc' } : {},
+    )
+  }
 
   const columns = useMemo(
     () => [
@@ -143,12 +192,21 @@ function UsersTable({ data, filters }: UsersTableProps) {
   const table = useReactTable({
     data,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
+    state: {
+      sorting,
+      pagination: {
+        pageIndex: pagination.page - 1,
+        pageSize: pagination.perPage,
+      },
+    },
+    onSortingChange: handleSortingChange,
+    // The server has already sorted and sliced. Row models that do it again
+    // would reorder the current page against itself.
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: pagination.totalPages,
+    rowCount: pagination.total,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: PAGE_SIZE } },
   })
 
   return (
@@ -264,6 +322,7 @@ function UsersTable({ data, filters }: UsersTableProps) {
         <div className={styles.filterAnchor}>
           <UserFilters
             organizations={filters.organizations}
+            values={filters.values}
             isOpen
             onClose={() => setFiltersOpen(false)}
             onApply={filters.onApply}
@@ -273,12 +332,12 @@ function UsersTable({ data, filters }: UsersTableProps) {
       )}
 
       <Pagination
-        currentPage={table.getState().pagination.pageIndex + 1}
-        totalPages={table.getPageCount()}
-        pageSize={table.getState().pagination.pageSize}
-        totalItems={table.getPrePaginationRowModel().rows.length}
-        onPageChange={(page) => table.setPageIndex(page - 1)}
-        onPageSizeChange={(size) => table.setPageSize(size)}
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        pageSize={pagination.perPage}
+        totalItems={pagination.total}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   )

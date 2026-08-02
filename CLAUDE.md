@@ -61,13 +61,14 @@ Chosen
 - Zod
 - Lucide Icons
 - clsx
-- Faker (devDependency — build-time only, never bundled)
 
 Reversed during development
 
 - moment — dropped for native `Intl.DateTimeFormat`. It cost ~70 kB for a
   single `formatDate` call and is maintenance-only per its own maintainers.
   `Intl` produces identical output for the format the design uses.
+- Faker — the dataset moved behind the deployed API, so the build-time
+  generator and the committed `public/api/users.json` it wrote are both gone.
 
 Testing
 
@@ -87,7 +88,9 @@ The application must include
 - Users
 - User Details
 
-Users are loaded from a mock API containing approximately 500 records.
+Users are loaded from a deployed API containing approximately 500 records. It
+serves a list endpoint (paginated, sortable, filterable), a per-user endpoint
+for the full record, and a stats endpoint. The list returns summaries only.
 
 Selected user information should persist using Local Storage.
 
@@ -377,9 +380,12 @@ baseURL
 
 timeout
 
-request interceptor
-
 response normalization
+
+Do not attach an `Authorization` header. The users API is public and read-only,
+the demo token authenticates nothing, and the header is not CORS-safelisted —
+it forces a preflight the API answers with `Allow-Headers: Content-Type`, which
+fails every request.
 
 Do NOT implement
 
@@ -417,9 +423,11 @@ Hooks should wrap React Query.
 
 Example
 
-useUsers()
+useUsers(query)
 
-useUser()
+useUser(id)
+
+useUserStats()
 
 Avoid generic wrappers like
 
@@ -475,15 +483,21 @@ Example
 
 20 users per page.
 
+Pagination, sorting and filtering are server-side — the API accepts `page`,
+`perPage`, `sortBy`, `sortOrder`, `search` and the six column filters. The
+table runs with `manualPagination` and `manualSorting`; it must not re-sort or
+re-slice what the server already returned.
+
 Do not use virtualization.
 
 Reason
 
-500 records with pagination do not justify the additional complexity.
+The server sends one page at a time, so the browser never holds more than 20
+records.
 
 If asked during interview
 
-explain that pagination already limits rendered DOM size.
+explain that pagination already limits both the payload and the rendered DOM.
 
 ---
 

@@ -2,15 +2,17 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi } from 'vitest'
-import { buildUser } from '@/test/factories'
+import { EMPTY_FILTERS } from '@/components/features/UserFilters'
+import { buildPaginatedUsers, buildUserSummary } from '@/test/factories'
 import { STORAGE_KEYS } from '@/constants'
-import UsersTable from './UsersTable'
+import type { Pagination, UserSummary } from '@/types'
+import UsersTable, { type SortState } from './UsersTable'
 
 const STATUSES = ['active', 'inactive', 'pending', 'blacklisted'] as const
 const ORGANIZATIONS = ['Lendsqr', 'Lendstar']
 
-const mockUsers = Array.from({ length: 25 }, (_, i) =>
-  buildUser({
+const mockUsers = Array.from({ length: 20 }, (_, i) =>
+  buildUserSummary({
     id: `user-${i}`,
     organization: ORGANIZATIONS[i % 2],
     username: `user${i}`,
@@ -20,18 +22,41 @@ const mockUsers = Array.from({ length: 25 }, (_, i) =>
   }),
 )
 
-function renderTable(users = mockUsers, withFilters = false) {
+interface RenderOptions {
+  users?: UserSummary[]
+  pagination?: Partial<Pagination>
+  sort?: SortState
+  withFilters?: boolean
+}
+
+function renderTable({
+  users = mockUsers,
+  pagination = { total: 25, totalPages: 2 },
+  sort = {},
+  withFilters = false,
+}: RenderOptions = {}) {
   const onApply = vi.fn()
   const onReset = vi.fn()
+  const onSortChange = vi.fn()
+  const onPageChange = vi.fn()
+  const onPageSizeChange = vi.fn()
+
+  const page = buildPaginatedUsers(users, pagination)
 
   const result = render(
     <MemoryRouter>
       <UsersTable
-        data={users}
+        data={page.users}
+        pagination={page.pagination}
+        sort={sort}
+        onSortChange={onSortChange}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         filters={
           withFilters
             ? {
                 organizations: ORGANIZATIONS,
+                values: EMPTY_FILTERS,
                 isActive: false,
                 onApply,
                 onReset,
@@ -42,13 +67,14 @@ function renderTable(users = mockUsers, withFilters = false) {
     </MemoryRouter>,
   )
 
-  return { ...result, onApply, onReset }
-}
-
-/** Text of the first cell in the first body row. */
-function firstRowOrganization() {
-  const [, firstBodyRow] = screen.getAllByRole('row')
-  return within(firstBodyRow).getAllByRole('cell')[0].textContent
+  return {
+    ...result,
+    onApply,
+    onReset,
+    onSortChange,
+    onPageChange,
+    onPageSizeChange,
+  }
 }
 
 describe('UsersTable', () => {
@@ -71,14 +97,15 @@ describe('UsersTable', () => {
       )
     })
 
-    it('renders one page of rows at a time', () => {
+    // The server sends exactly one page, so the table renders what it is
+    // handed rather than slicing a longer list itself.
+    it('renders every row it is given', () => {
       renderTable()
 
-      // 1 header row + 20 data rows
       expect(screen.getAllByRole('row')).toHaveLength(21)
     })
 
-    it('reports the unpaginated total', () => {
+    it('reports the server-side total rather than the row count', () => {
       renderTable()
 
       expect(screen.getByText('out of 25')).toBeInTheDocument()
@@ -92,43 +119,75 @@ describe('UsersTable', () => {
   })
 
   describe('pagination', () => {
-    it('shows the remaining rows on the last page', async () => {
+    it('asks the caller for the next page', async () => {
       const user = userEvent.setup()
-      renderTable()
+      const { onPageChange } = renderTable()
 
       await user.click(screen.getByLabelText('Page 2'))
 
-      // 1 header + 5 remaining rows
-      expect(screen.getAllByRole('row')).toHaveLength(6)
+      expect(onPageChange).toHaveBeenCalledWith(2)
+    })
+
+    it('reflects the page the server returned', () => {
+      renderTable({ pagination: { page: 2, total: 25, totalPages: 2 } })
+
+      expect(screen.getByLabelText('Page 2')).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    })
+
+    it('asks the caller for a different page size', async () => {
+      const user = userEvent.setup()
+      const { onPageSizeChange } = renderTable()
+
+      await user.selectOptions(screen.getByLabelText('Items per page'), '50')
+
+      expect(onPageSizeChange).toHaveBeenCalledWith(50)
     })
   })
 
   describe('sorting', () => {
-    it('reorders rows when a column header is activated', async () => {
+    it('asks the caller to sort ascending on the first activation', async () => {
       const user = userEvent.setup()
-      renderTable()
-
-      expect(firstRowOrganization()).toBe('Lendsqr')
+      const { onSortChange } = renderTable()
 
       await user.click(screen.getByRole('button', { name: /ORGANIZATION/ }))
-      expect(firstRowOrganization()).toBe('Lendsqr')
 
-      await user.click(screen.getByRole('button', { name: /ORGANIZATION/ }))
-      expect(firstRowOrganization()).toBe('Lendstar')
+      expect(onSortChange).toHaveBeenCalledWith({
+        sortBy: 'organization',
+        sortOrder: 'asc',
+      })
     })
 
-    it('exposes the sort direction on the column header', async () => {
+    it('flips to descending when the column is already ascending', async () => {
       const user = userEvent.setup()
-      renderTable()
-
-      const header = screen.getByRole('columnheader', { name: /ORGANIZATION/ })
-      expect(header).toHaveAttribute('aria-sort', 'none')
-
-      await user.click(screen.getByRole('button', { name: /ORGANIZATION/ }))
-      expect(header).toHaveAttribute('aria-sort', 'ascending')
+      const { onSortChange } = renderTable({
+        sort: { sortBy: 'organization', sortOrder: 'asc' },
+      })
 
       await user.click(screen.getByRole('button', { name: /ORGANIZATION/ }))
-      expect(header).toHaveAttribute('aria-sort', 'descending')
+
+      expect(onSortChange).toHaveBeenCalledWith({
+        sortBy: 'organization',
+        sortOrder: 'desc',
+      })
+    })
+
+    it('exposes the applied sort on the column header', () => {
+      renderTable({ sort: { sortBy: 'organization', sortOrder: 'desc' } })
+
+      expect(
+        screen.getByRole('columnheader', { name: /ORGANIZATION/ }),
+      ).toHaveAttribute('aria-sort', 'descending')
+    })
+
+    it('leaves the other columns marked unsorted', () => {
+      renderTable({ sort: { sortBy: 'organization', sortOrder: 'asc' } })
+
+      expect(
+        screen.getByRole('columnheader', { name: /EMAIL/ }),
+      ).toHaveAttribute('aria-sort', 'none')
     })
 
     it('does not offer sorting on the actions column', () => {
@@ -149,7 +208,7 @@ describe('UsersTable', () => {
       expect(link).toHaveAttribute('href', '/users/user-0')
     })
 
-    it('caches the user when the row link is followed', async () => {
+    it('records the selection when the row link is followed', async () => {
       const user = userEvent.setup()
       renderTable()
 
@@ -180,7 +239,7 @@ describe('UsersTable', () => {
 
     it('opens the filter panel from a column header', async () => {
       const user = userEvent.setup()
-      renderTable(mockUsers, true)
+      renderTable({ withFilters: true })
 
       await user.click(
         screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
@@ -192,7 +251,7 @@ describe('UsersTable', () => {
 
     it('reports the chosen filters to the caller', async () => {
       const user = userEvent.setup()
-      const { onApply } = renderTable(mockUsers, true)
+      const { onApply } = renderTable({ withFilters: true })
 
       await user.click(
         screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),

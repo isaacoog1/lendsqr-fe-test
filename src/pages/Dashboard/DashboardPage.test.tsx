@@ -3,13 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { STORAGE_KEYS } from '@/constants'
 import { usersService } from '@/services/users.service'
-import { buildUser, buildUsers } from '@/test/factories'
+import {
+  buildPaginatedUsers,
+  buildUserStats,
+  buildUserSummary,
+} from '@/test/factories'
 import { renderWithProviders } from '@/test/renderWithProviders'
 import DashboardPage from './DashboardPage'
 
 vi.mock('@/services/users.service')
 
-const mockedGetAll = vi.mocked(usersService.getAll)
+const mockedList = vi.mocked(usersService.list)
+const mockedGetStats = vi.mocked(usersService.getStats)
 
 function renderDashboard() {
   return renderWithProviders(<DashboardPage />, { route: '/dashboard' })
@@ -31,8 +36,10 @@ function panel(name: string) {
 describe('DashboardPage', () => {
   beforeEach(() => {
     localStorage.clear()
-    mockedGetAll.mockReset()
-    mockedGetAll.mockResolvedValue(buildUsers(25))
+    mockedList.mockReset()
+    mockedGetStats.mockReset()
+    mockedList.mockResolvedValue(buildPaginatedUsers())
+    mockedGetStats.mockResolvedValue(buildUserStats())
   })
 
   describe('loading state', () => {
@@ -46,8 +53,8 @@ describe('DashboardPage', () => {
   })
 
   describe('error state', () => {
-    it('shows a retry affordance when the request fails', async () => {
-      mockedGetAll.mockRejectedValue({ message: 'Network Error', status: 0 })
+    it('shows a retry affordance when the stats request fails', async () => {
+      mockedGetStats.mockRejectedValue({ message: 'Network Error', status: 0 })
       renderDashboard()
 
       await waitFor(() => {
@@ -56,9 +63,18 @@ describe('DashboardPage', () => {
       expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
     })
 
+    it('shows a retry affordance when the recent-users request fails', async () => {
+      mockedList.mockRejectedValue({ message: 'Network Error', status: 0 })
+      renderDashboard()
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load users')).toBeInTheDocument()
+      })
+    })
+
     it('refetches when Retry is pressed', async () => {
       const user = userEvent.setup()
-      mockedGetAll.mockRejectedValueOnce({
+      mockedGetStats.mockRejectedValueOnce({
         message: 'Network Error',
         status: 0,
       })
@@ -68,17 +84,17 @@ describe('DashboardPage', () => {
         expect(screen.getByText('Failed to load users')).toBeInTheDocument()
       })
 
-      mockedGetAll.mockResolvedValue(buildUsers(3))
       await user.click(screen.getByRole('button', { name: 'Retry' }))
 
       await waitForDashboard()
-      expect(mockedGetAll).toHaveBeenCalledTimes(2)
+      expect(mockedGetStats).toHaveBeenCalledTimes(2)
     })
   })
 
   describe('empty state', () => {
     it('explains the absence of data without a spinner', async () => {
-      mockedGetAll.mockResolvedValue([])
+      mockedGetStats.mockResolvedValue(buildUserStats({ totalUsers: 0 }))
+      mockedList.mockResolvedValue(buildPaginatedUsers([], { total: 0 }))
       renderDashboard()
 
       await waitFor(() => {
@@ -101,33 +117,34 @@ describe('DashboardPage', () => {
       expect(screen.getByText('USERS WITH SAVINGS')).toBeInTheDocument()
     })
 
-    it('counts loans and savings from the data rather than a fixed ratio', async () => {
-      mockedGetAll.mockResolvedValue([
-        buildUser({ hasLoan: true, hasSavings: true }),
-        buildUser({ hasLoan: true, hasSavings: false }),
-        buildUser({ hasLoan: false, hasSavings: false }),
-        buildUser({ hasLoan: false, hasSavings: false }),
-      ])
+    it('reports the counts the stats endpoint returned', async () => {
+      mockedGetStats.mockResolvedValue(
+        buildUserStats({ usersWithLoans: 191, usersWithSavings: 289 }),
+      )
       renderDashboard()
       await waitForDashboard()
 
       expect(
         screen.getByText('USERS WITH LOANS').closest('div'),
-      ).toHaveTextContent('2')
+      ).toHaveTextContent('191')
       expect(
         screen.getByText('USERS WITH SAVINGS').closest('div'),
-      ).toHaveTextContent('1')
+      ).toHaveTextContent('289')
     })
   })
 
   describe('status breakdown', () => {
     it('reports the count and share of each status', async () => {
-      mockedGetAll.mockResolvedValue([
-        buildUser({ status: 'active' }),
-        buildUser({ status: 'active' }),
-        buildUser({ status: 'pending' }),
-        buildUser({ status: 'blacklisted' }),
-      ])
+      mockedGetStats.mockResolvedValue(
+        buildUserStats({
+          statusBreakdown: [
+            { status: 'active', count: 2, percentage: 50 },
+            { status: 'inactive', count: 0, percentage: 0 },
+            { status: 'pending', count: 1, percentage: 25 },
+            { status: 'blacklisted', count: 1, percentage: 25 },
+          ],
+        }),
+      )
       renderDashboard()
       await waitForDashboard()
 
@@ -137,8 +154,7 @@ describe('DashboardPage', () => {
       expect(within(region).getByText('0%')).toBeInTheDocument()
     })
 
-    it('lists every status even when none match', async () => {
-      mockedGetAll.mockResolvedValue([buildUser({ status: 'active' })])
+    it('lists every status the endpoint reported, including empty ones', async () => {
       renderDashboard()
       await waitForDashboard()
 
@@ -149,12 +165,15 @@ describe('DashboardPage', () => {
   })
 
   describe('top organizations', () => {
-    it('ranks organizations by user count', async () => {
-      mockedGetAll.mockResolvedValue([
-        buildUser({ organization: 'Lendsqr' }),
-        buildUser({ organization: 'Lendsqr' }),
-        buildUser({ organization: 'Irorun' }),
-      ])
+    it('renders them in the order the endpoint ranked them', async () => {
+      mockedGetStats.mockResolvedValue(
+        buildUserStats({
+          topOrganizations: [
+            { organization: 'Lendsqr', count: 63 },
+            { organization: 'Irorun', count: 12 },
+          ],
+        }),
+      )
       renderDashboard()
       await waitForDashboard()
 
@@ -169,35 +188,39 @@ describe('DashboardPage', () => {
   })
 
   describe('recently joined', () => {
-    it('lists the newest users first', async () => {
-      mockedGetAll.mockResolvedValue([
-        buildUser({
-          dateJoined: '2020-01-01T00:00:00.000Z',
-          personalInfo: {
-            ...buildUser().personalInfo,
-            fullName: 'Older Signup',
-          },
-        }),
-        buildUser({
-          dateJoined: '2024-01-01T00:00:00.000Z',
-          personalInfo: {
-            ...buildUser().personalInfo,
-            fullName: 'Newer Signup',
-          },
-        }),
-      ])
+    // Sorting and slicing are the endpoint's job now, so what matters is that
+    // the page asks for the right five.
+    it('asks for the five newest sign-ups', async () => {
+      renderDashboard()
+      await waitForDashboard()
+
+      expect(mockedList).toHaveBeenCalledWith({
+        sortBy: 'dateJoined',
+        sortOrder: 'desc',
+        perPage: 5,
+      })
+    })
+
+    it('renders them in the order they arrived', async () => {
+      mockedList.mockResolvedValue(
+        buildPaginatedUsers([
+          buildUserSummary({ username: 'newest_signup' }),
+          buildUserSummary({ username: 'older_signup' }),
+        ]),
+      )
       renderDashboard()
       await waitForDashboard()
 
       const region = panel('Recently joined')
       const [first] = within(region).getAllByRole('listitem')
-      expect(first).toHaveTextContent('Newer Signup')
+      expect(first).toHaveTextContent('newest_signup')
     })
 
-    it('links each row to that user and caches them on the way', async () => {
+    it('links each row to that user and records the selection', async () => {
       const user = userEvent.setup()
-      const target = buildUser({ id: 'user-42' })
-      mockedGetAll.mockResolvedValue([target])
+      mockedList.mockResolvedValue(
+        buildPaginatedUsers([buildUserSummary({ id: 'user-42' })]),
+      )
       renderDashboard()
       await waitForDashboard()
 

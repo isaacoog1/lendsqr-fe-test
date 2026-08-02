@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '@/api/client'
 import { config } from '@/config/env'
-import { buildUser } from '@/test/factories'
+import {
+  buildPaginatedUsers,
+  buildUser,
+  buildUserStats,
+} from '@/test/factories'
 import { usersService } from './users.service'
 
 vi.mock('@/api/client', () => ({
@@ -10,25 +14,69 @@ vi.mock('@/api/client', () => ({
 
 const mockedGet = vi.mocked(apiClient.get)
 
+/** Wraps a payload the way every endpoint answers. */
+function envelope<T>(data: T, status = 200) {
+  return { data: { data, message: 'ok', status } }
+}
+
 describe('usersService', () => {
   beforeEach(() => {
     mockedGet.mockReset()
   })
 
-  describe('getAll', () => {
+  describe('list', () => {
     it('requests the configured users path', async () => {
-      mockedGet.mockResolvedValue({ data: [] })
+      mockedGet.mockResolvedValue(envelope(buildPaginatedUsers()))
 
-      await usersService.getAll()
+      await usersService.list()
 
-      expect(mockedGet).toHaveBeenCalledWith(config.usersPath)
+      expect(mockedGet).toHaveBeenCalledWith(config.usersPath, { params: {} })
     })
 
-    it('unwraps the response body', async () => {
-      const users = [buildUser(), buildUser()]
-      mockedGet.mockResolvedValue({ data: users })
+    it('unwraps the response envelope', async () => {
+      const page = buildPaginatedUsers()
+      mockedGet.mockResolvedValue(envelope(page))
 
-      await expect(usersService.getAll()).resolves.toEqual(users)
+      await expect(usersService.list()).resolves.toEqual(page)
+    })
+
+    it('forwards paging, sorting and filters as query parameters', async () => {
+      mockedGet.mockResolvedValue(envelope(buildPaginatedUsers()))
+
+      await usersService.list({
+        page: 3,
+        perPage: 50,
+        sortBy: 'dateJoined',
+        sortOrder: 'desc',
+        status: 'active',
+      })
+
+      expect(mockedGet).toHaveBeenCalledWith(config.usersPath, {
+        params: {
+          page: 3,
+          perPage: 50,
+          sortBy: 'dateJoined',
+          sortOrder: 'desc',
+          status: 'active',
+        },
+      })
+    })
+
+    // The filter form submits all six fields whether or not they were filled
+    // in, and the API answers a blank `status` with a 400 rather than ignoring
+    // it.
+    it('drops blank filters rather than sending them', async () => {
+      mockedGet.mockResolvedValue(envelope(buildPaginatedUsers()))
+
+      await usersService.list({
+        organization: 'Lendsqr',
+        username: '',
+        email: undefined,
+      })
+
+      expect(mockedGet).toHaveBeenCalledWith(config.usersPath, {
+        params: { organization: 'Lendsqr' },
+      })
     })
 
     it('propagates a normalized request failure', async () => {
@@ -37,7 +85,7 @@ describe('usersService', () => {
         status: 0,
       })
 
-      await expect(usersService.getAll()).rejects.toEqual({
+      await expect(usersService.list()).rejects.toEqual({
         message: 'Please check your internet connection and try again.',
         status: 0,
       })
@@ -45,35 +93,51 @@ describe('usersService', () => {
   })
 
   describe('getById', () => {
-    it('resolves a user from the collection', async () => {
-      const target = buildUser({ email: 'grace@lendstar.com' })
-      mockedGet.mockResolvedValue({ data: [buildUser(), target, buildUser()] })
+    it('requests the record by id', async () => {
+      mockedGet.mockResolvedValue(envelope(buildUser()))
 
-      const user = await usersService.getById(target.id)
+      await usersService.getById('user-1')
 
-      expect(user.id).toBe(target.id)
-      expect(user.email).toBe('grace@lendstar.com')
+      expect(mockedGet).toHaveBeenCalledWith(`${config.usersPath}/user-1`)
     })
 
-    it('throws a 404 when no user matches the id', async () => {
-      mockedGet.mockResolvedValue({ data: [buildUser()] })
+    it('returns the full record, not a summary', async () => {
+      const user = buildUser({ email: 'grace@lendstar.com' })
+      mockedGet.mockResolvedValue(envelope(user))
 
-      await expect(usersService.getById('missing-id')).rejects.toEqual({
-        message: 'User not found',
+      const result = await usersService.getById(user.id)
+
+      expect(result.email).toBe('grace@lendstar.com')
+      expect(result.personalInfo.fullName).toBe('Grace Effiom')
+    })
+
+    it("propagates the API's 404 for a missing record", async () => {
+      mockedGet.mockRejectedValue({
+        message: "No user found with id 'nope'",
+        status: 404,
+      })
+
+      await expect(usersService.getById('nope')).rejects.toEqual({
+        message: "No user found with id 'nope'",
         status: 404,
       })
     })
+  })
 
-    it('propagates a request failure rather than reporting a 404', async () => {
-      mockedGet.mockRejectedValue({
-        message: 'Something went wrong',
-        status: 500,
-      })
+  describe('getStats', () => {
+    it('requests the stats endpoint', async () => {
+      mockedGet.mockResolvedValue(envelope(buildUserStats()))
 
-      await expect(usersService.getById('any-id')).rejects.toEqual({
-        message: 'Something went wrong',
-        status: 500,
-      })
+      await usersService.getStats()
+
+      expect(mockedGet).toHaveBeenCalledWith(`${config.usersPath}/stats`)
+    })
+
+    it('unwraps the totals, breakdowns and organization list', async () => {
+      const stats = buildUserStats()
+      mockedGet.mockResolvedValue(envelope(stats))
+
+      await expect(usersService.getStats()).resolves.toEqual(stats)
     })
   })
 })

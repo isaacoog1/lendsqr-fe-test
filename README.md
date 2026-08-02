@@ -10,6 +10,9 @@ npm install
 npm run dev
 ```
 
+No `.env` file is needed. The app points at a deployed API by default — see
+[The API](#the-api) to serve it from somewhere else.
+
 Sign in with the demo account. It is also printed under the login button, so
 you do not have to come back here for it:
 
@@ -33,7 +36,6 @@ you cannot trigger is an error state nobody has tested.
 | `npm run test:coverage` | Suite plus a coverage report |
 | `npm run lint` | ESLint |
 | `npm run format` / `format:check` | Prettier |
-| `npm run generate:users` | Regenerate the mock dataset |
 
 The four commands that gate a commit are `lint`, `format:check`, `test` and
 `build`. All four pass with zero warnings.
@@ -47,9 +49,9 @@ React 19 with TypeScript and SCSS were required. The rest:
 | Vite | Fast dev server, and the build output is easy to inspect |
 | React Router | Standard for an SPA with protected routes |
 | TanStack Query | Owns server state so no global store is needed |
-| TanStack Table | Sorting and pagination without hand-rolling a table |
+| TanStack Table | Column model, sort state and header rendering without hand-rolling a table |
 | React Hook Form + Zod | Schema-driven validation, one source of truth per form |
-| Axios | Interceptors for the auth header and error normalization |
+| Axios | One configured instance; an interceptor normalizes every error |
 | Lucide | One icon set, tree-shakes cleanly |
 | Vitest + Testing Library | Shares Vite's config; queries by role rather than class |
 
@@ -64,10 +66,8 @@ produces identical output for the format the design uses.
 ## Layout of the code
 
 ```
-scripts/           Build-time dataset generator (Node, not shipped)
-public/api/        The generated dataset, served as a static endpoint
 src/
-  api/             Axios instance, auth header, error normalization
+  api/             Axios instance and error normalization
   components/
     ui/            Presentational primitives — Button, Input, Table bits
     features/      Tied to the domain — UsersTable, UserFilters, StatCard
@@ -89,7 +89,7 @@ src/
 ## Data flow
 
 ```
-Component → useUsers() → usersService.getAll() → apiClient → GET /api/users.json
+Component → useUsers(query) → usersService.list(query) → apiClient → GET /users?…
 ```
 
 Each layer does one thing. The client owns transport concerns, services own
@@ -110,49 +110,72 @@ renaming a path string means grepping and hoping.
 The cost is a few more lines per endpoint. At this size that is not a real
 cost.
 
-## The mock API
+## The API
 
-`npm run generate:users` runs a seeded Faker script that writes 500 records to
-`public/api/users.json`, and the app fetches that over HTTP through the Axios
-client. The seed is fixed, so regenerating produces an identical file and the
-dataset only shows up in a diff when the shape or the seed changes.
+500 user records live behind three endpoints, deployed separately and served
+over CORS:
 
-Generating at build time rather than in the browser matters for two reasons.
-Faker is a data-generation library and has no business in a client bundle, so
-it stays a devDependency and never ships. And generating in-process means there
-is no request at all — the interceptors never run and the failure states have
-nothing to respond to.
+| Endpoint | Returns |
+|---|---|
+| `GET /users` | One page of summaries plus `pagination` metadata |
+| `GET /users/:id` | The full record — personal details, guarantor, bank, tier |
+| `GET /users/stats` | Platform totals, status and organization breakdowns, the list of organizations |
 
-Two environment variables point the app at whichever host is serving the file:
+Every response arrives in the same envelope, which the service layer unwraps:
 
-```
-VITE_API_BASE_URL=/api          # combined as ${BASE}${PATH}
-VITE_USERS_PATH=/users.json
+```json
+{ "data": …, "message": "Users retrieved successfully", "status": 200 }
 ```
 
-The defaults hit the committed dataset on the app's own origin, so a fresh
-clone runs with no `.env` and no network. Set them in `.env.production` to move
-to an external mock host — a config change, not a code change.
+The list endpoint accepts `page`, `perPage`, `sortBy`, `sortOrder`, a `search`
+term spanning four fields, and the six column filters. Sorting, filtering and
+paging therefore all happen server-side.
 
-`getById` resolves against the collection rather than issuing
-`GET /users/:id`, because a static file host serves one URL. React Query dedupes
-it against the list query, so opening a user from the table costs no extra
-request. Against a backend with per-resource routes it is a one-line change.
+**Two contracts, not one.** The list returns a `UserSummary` — the id and the
+six visible columns — and only `GET /users/:id` returns the whole record.
+`UserSummary` is declared as `Pick<User, …>` so the two cannot drift.
+
+Two environment variables locate the API, and neither is required — the
+defaults in `src/config/env.ts` point at the deployment, so a fresh clone runs
+with no `.env` file:
+
+```
+VITE_API_BASE_URL=https://www.checkmeout.me/api/lendsqr
+VITE_USERS_PATH=/users
+```
+
+The `www` is deliberate. The apex domain answers with a 307 redirect, and a
+browser treats a redirected CORS preflight as a network error instead of
+following it.
+
+**No `Authorization` header.** There is no auth backend, so the stored token is
+a local marker that authenticates nothing, and these endpoints are public and
+read-only. Sending it would also break every request: `Authorization` is not
+CORS-safelisted, so it forces a preflight, and the API replies
+`Access-Control-Allow-Headers: Content-Type`. A credential that proves nothing
+is not worth failing every request for.
+
+Bad input gets a 400 naming the parameter — *"status must be one of: active,
+inactive, pending, blacklisted"* — and the response interceptor already reads
+`error.response.data.message`, so those surface verbatim.
 
 ## Handling 500 records
 
 Pagination, 20 rows per page, with a page-size selector. No virtualization.
 
-At 500 records pagination already caps the DOM at 20 rows, and everything,
-sorting, filtering, search, stays instant. Virtualization would buy nothing
-measurable and cost a fair amount: measured row heights, scroll restoration,
-and a table that no longer works with browser find-in-page or keyboard tabbing.
-The point where it starts paying for itself is thousands of rows rendered at
-once, which is not this.
+The server sends one page at a time, so the browser never holds more than 20
+records and the DOM never holds more than 20 rows. Virtualization solves a
+problem that only appears when thousands of rows are rendered at once; here it
+would cost measured row heights, scroll restoration, and a table that no longer
+works with find-in-page or keyboard tabbing, in exchange for nothing.
 
-Filtering and search run over the full array before the table paginates, so
-they apply across all 500 rows and not just the visible page. The derived
-lists are memoized on the inputs that produce them.
+Because filtering and sorting run in the database rather than over a loaded
+array, they apply across all 500 records rather than the visible page — and the
+payload stays the same size no matter how many records exist.
+
+`placeholderData: keepPreviousData` keeps the current page on screen while the
+next one loads. Without it every page change unmounts the table back to the
+skeleton, which reads as the whole screen reloading rather than a row swap.
 
 ## States
 
@@ -166,17 +189,24 @@ until data lands.
 **Empty.** Three different situations get three different messages. The
 endpoint returning nothing is not the same as a filter excluding everyone,
 which is not the same as a request failing. Only the middle one offers to clear
-filters, because that is the only one where clearing them helps.
+filters, because that is the only one where clearing them helps. The three are
+told apart by `pagination.total` and whether any filter is applied, not by
+counting rendered rows.
 
 **Error.** A failed list offers Retry, which refetches. On the details page a
 404 and a network failure are told apart: a missing record offers a way back to
 the list, an unreachable server offers Retry. Reporting both as "user not
 found" tells people not to retry at the exact moment retrying would work.
 
+The Users and Dashboard pages each depend on two endpoints. Both are covered by
+one loading state and one error state rather than four combinations of partial
+UI — a page that renders its stat cards beside an error where the table should
+be is claiming more than it knows. Retry refetches both.
+
 **Crash.** The root route carries an `errorElement` as a last line of defence.
 Without one, any render-time throw unmounts the whole tree and leaves a blank
-page, not theoretical here, since the details page reads a user object straight
-out of `localStorage` and a stale record is valid JSON of the wrong shape. The
+page, not theoretical here, since the details page reads a record straight out
+of `localStorage` and a stale entry is valid JSON of the wrong shape. The
 data router owns the boundary itself, so the recovery screen is a function
 component that reads what was caught with `useRouteError` — the class component
 this used to need is gone.
@@ -225,18 +255,40 @@ table, TanStack Table, the filter forms and all six detail sections first.
 
 ## Search and filtering
 
+The URL is the single source of truth for what the table shows — page, size,
+sort column, direction, the search term and all six filters. A narrowed view
+can be linked to and survives a refresh, and the table stays a controlled
+presentation component with no query state of its own.
+
 Search lives in the header, where the design puts it, and submits to
-`/users?q=…`. Putting it in the URL means a filtered list can be linked to and
-survives a refresh, which local component state could not do.
+`/users?q=…`; the API calls the same thing `search`, and the two are mapped in
+one place.
+
+`src/pages/Users/usersQuery.ts` parses the URL with a Zod schema before any of
+it reaches the API. That is not ceremony: the URL is user input, and the API
+answers anything it does not recognise with a 400. Every field carries a
+`.catch()`, so a hand-typed `?sortBy=nonsense` falls back to the default order
+instead of rendering an error screen.
+
+Anything except a page change resets to page one. Applying a filter while on
+page twelve would otherwise land on a page the narrowed result set no longer
+has. Query changes replace rather than push, so paging does not fill the back
+button with twenty near-identical entries.
 
 The column filter panel opens from the funnel icon in a column header, matching
 the design. It is rendered as a sibling of the table's scroll container rather
 than inside the `<th>`, because the table scrolls horizontally and an
-absolutely positioned panel inside `overflow-x: auto` gets clipped.
+absolutely positioned panel inside `overflow-x: auto` gets clipped. It is
+seeded from the URL, so reopening it shows what is applied rather than an empty
+form over a filtered table.
 
-The date filter compares calendar days in local time. Formatting the stored
-timestamp as UTC shifted the day for anyone east of Greenwich who signed up
-late in the evening.
+The organization dropdown is populated from `GET /users/stats`, which returns
+the distinct list. Deriving it client-side would mean loading all 500 users to
+collect ten names.
+
+The date filter now compares calendar days server-side. The local-time
+comparison this used to do in the browser is gone with it — worth knowing if a
+sign-up late in the evening appears under the neighbouring day.
 
 ## Dashboard
 
@@ -246,21 +298,32 @@ Rather than ship two near-identical pages, `/dashboard` shows a status
 breakdown, the top organizations by user count, and the five most recent
 sign-ups.
 
-Every figure is counted from the same 500 records the table renders, so the two
-views cannot disagree. The bars are CSS widths; a charting library is not worth
-it for two lists of five rows.
+The first two come from `GET /users/stats`, counted over all 500 records rather
+than recomputed in every browser. "Recently joined" is
+`?sortBy=dateJoined&sortOrder=desc&perPage=5` — sorting and slicing are the
+endpoint's job now. The bars are CSS widths; a charting library is not worth it
+for two lists of five rows.
+
+The stat cards report platform totals and do not move when the table below them
+is filtered. That is deliberate: the cards describe the platform, the table
+describes the query, and cards that moved with the filter would be making a
+different claim.
 
 ## Persistence
 
-Opening a user from the table or the dashboard writes that record to
-`localStorage` first. The details page reads it and renders immediately, and
-only fetches when the cached id does not match the URL. That is what makes a
-refresh on `/users/:id` instant.
+Opening a user from the table or the dashboard records that selection in
+`localStorage`, and the details page reads it back to name whose record is
+loading rather than announcing an anonymous wait.
+
+It records the selection rather than caching a user, because the list only
+carries a summary — no personal details, bank details or tier — so the full
+record is always fetched. React Query covers the repeat visit: navigating back
+into a user already seen serves them from memory within `staleTime`.
 
 All of it goes through helpers in `src/utils/storage.ts`, which swallow both
-malformed JSON and a full quota. Logging out clears the token, the cached user,
-and the React Query cache. Without the last one, signing in again inside the
-10-minute `gcTime` was served the previous session's data.
+malformed JSON and a full quota. Logging out clears the token, the stored
+selection, and the React Query cache. Without the last one, signing in again
+inside the 10-minute `gcTime` was served the previous session's data.
 
 ## Accessibility
 
@@ -298,27 +361,37 @@ rather than squeezing columns to nothing.
 
 ## Testing
 
-175 tests across 24 files. Roughly 91% of statements and 87% of branches.
+199 tests across 24 files. Roughly 94% of statements and 90% of branches.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is
 no test that the error state renders or that Retry actually refetches.
 
+With the server doing the filtering, a test that renders three users and
+expects one after filtering would be testing nothing. So those assertions moved
+to the query the page asked for: applying a status filter sends `status`,
+sorting a column sends `sortBy` and `sortOrder`, and either one resets `page` to
+1. What the server does with those parameters is the API's test suite, not
+this one.
+
+`usersQuery.ts` is unit-tested directly, including every malformed URL the API
+would reject.
+
 Tests query by role and accessible name. That keeps them readable and means
 they fail when the accessibility of a component regresses, not just when its
 markup changes.
 
-A shared factory builds `User` fixtures so a change to the type touches one
-file instead of three.
+Shared factories build `User`, `UserSummary`, a paginated response and a stats
+response, so a change to a contract touches one file instead of six.
 
 ## Bundle
 
 Initial JavaScript is **209 kB**, or **66 kB gzipped**, with each route loading
 its own chunk on demand.
 
-Three choices keep it there: data generation happens at build time so Faker
-never reaches the browser, routes are code-split, and dates are formatted with
-`Intl` rather than a date library.
+Three choices keep it there: routes are code-split, dates are formatted with
+`Intl` rather than a date library, and the dataset lives behind the API rather
+than being shipped or generated in the browser.
 
 ## Things left undone
 
@@ -332,3 +405,8 @@ it would otherwise never appear.
 
 The header's notification bell and the "Docs" link are decorative, as they are
 in the design.
+
+The users table does not show a full name, so there is no way to search by one:
+the API's `search` spans organization, username, email and phone number, which
+is exactly what the columns show. Searching on a field nobody can see would
+return rows with no visible reason for matching.
