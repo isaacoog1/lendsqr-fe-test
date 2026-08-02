@@ -16,7 +16,6 @@
   box-shadow: $shadow-sm;
   z-index: 50;
 
-
   @include respond-to(desktop) {
     column-gap: $spacing-xl;
   }

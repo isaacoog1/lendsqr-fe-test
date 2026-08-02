@@ -3,8 +3,8 @@
 An admin console for browsing 500 user records, built for the Lendsqr Frontend
 Engineer assessment. Four screens: Login, Dashboard, Users, and User details.
 
-**Live:** <https://oguntuyo-oluwakorede-isaac-lendsqr-fe-test.vercel.app> — sign
-in with `admin@lendsqr.com` / `Password123!`, also printed under the login
+**Live:** <https://oguntuyo-oluwakorede-isaac-lendsqr-fe-test.vercel.app>
+Sign in with `admin@lendsqr.com` / `Password123!`, also printed under the login
 button.
 
 ## Running it
@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-No `.env` file is needed. The app points at a deployed API by default — see
+No `.env` file is needed. The app points at a deployed API by default, see
 [The API](#the-api) to serve it from somewhere else.
 
 Sign in with the demo account. It is also printed under the login button, so
@@ -26,8 +26,7 @@ Password123!
 ```
 
 There is no auth backend. The service accepts that one pair and rejects
-everything else, which is what makes the 401 branch reachable — an error state
-you cannot trigger is an error state nobody has tested.
+everything else, which is what makes the 401 branch reachable.
 
 ## Scripts
 
@@ -42,7 +41,8 @@ you cannot trigger is an error state nobody has tested.
 | `npm run format` / `format:check` | Prettier |
 
 The four commands that gate a commit are `lint`, `format:check`, `test` and
-`build`. All four pass with zero warnings.
+`build`. All four pass with zero warnings, and `.github/workflows/ci.yml` runs
+the same four on every push to `main` and every pull request.
 
 ## Stack
 
@@ -64,7 +64,7 @@ and UI state lives in the component that owns it, which between them covered
 everything here.
 
 Dates are formatted with `Intl.DateTimeFormat` rather than a date library. A
-library would cost roughly 70 kB for a single `formatDate` call, and `Intl`
+library would increase size just for for a single `formatDate` call, and `Intl`
 produces identical output for the format the design uses.
 
 ## Layout of the code
@@ -73,13 +73,13 @@ produces identical output for the format the design uses.
 src/
   api/             Axios instance and error normalization
   components/
-    ui/            Presentational primitives — Button, Input, Table bits
-    features/      Tied to the domain — UsersTable, UserFilters, StatCard
+    ui/            Presentational primitives: Button, Input, Table bits
+    features/      Tied to the domain: UsersTable, UserFilters, StatCard
     layout/        Header and Sidebar
   config/          Env, query client, sidebar and stat-card config
   constants/       Query keys, storage keys, demo credentials
   contexts/        Auth provider and hook
-  hooks/           React Query wrappers
+  hooks/           React Query wrappers, plus useFocusTrap
   layouts/         AuthLayout and AppLayout
   pages/           One folder per route
   routes/          Router, route table, the two guards, the error boundary
@@ -122,7 +122,7 @@ over CORS:
 | Endpoint | Returns |
 |---|---|
 | `GET /users` | One page of summaries plus `pagination` metadata |
-| `GET /users/:id` | The full record — personal details, guarantor, bank, tier |
+| `GET /users/:id` | The full record: personal details, guarantor, bank, tier |
 | `GET /users/stats` | Platform totals, status and organization breakdowns, the list of organizations |
 
 Every response arrives in the same envelope, which the service layer unwraps:
@@ -133,13 +133,13 @@ Every response arrives in the same envelope, which the service layer unwraps:
 
 The list endpoint accepts `page`, `perPage`, `sortBy`, `sortOrder`, a `search`
 term spanning four fields, and the six column filters. Sorting, filtering and
-paging therefore all happen server-side.
+paging therefore all happen server-side (The exact way a production application would work).
 
-**Two contracts, not one.** The list returns a `UserSummary` — the id and the
-six visible columns — and only `GET /users/:id` returns the whole record.
+**Two contracts, not one.** The list returns a `UserSummary`, the id and the
+six visible columns, and only `GET /users/:id` returns the whole record.
 `UserSummary` is declared as `Pick<User, …>` so the two cannot drift.
 
-Two environment variables locate the API, and neither is required — the
+Two environment variables locate the API, and neither is required. The
 defaults in `src/config/env.ts` point at the deployment, so a fresh clone runs
 with no `.env` file:
 
@@ -150,7 +150,7 @@ VITE_USERS_PATH=/users
 
 The `www` is deliberate. The apex domain answers with a 307 redirect, and a
 browser treats a redirected CORS preflight as a network error instead of
-following it — one of several failures that look identical to a lost
+following it. One of several failures that look identical to a lost
 connection and are not one, which is why the client
 [sorts them apart](#network-error-is-not-no-internet).
 
@@ -161,22 +161,24 @@ CORS-safelisted, so it forces a preflight, and the API replies
 `Access-Control-Allow-Headers: Content-Type`. A credential that proves nothing
 is not worth failing every request for.
 
-Bad input gets a 400 naming the parameter — *"status must be one of: active,
-inactive, pending, blacklisted"* — and the response interceptor already reads
+Bad input gets a 400 naming the parameter *"status must be one of: active,
+inactive, pending, blacklisted"*, and the response interceptor already reads
 `error.response.data.message`, so those reach the error state verbatim.
 
 ## Handling 500 records
 
-Pagination, 20 rows per page, with a page-size selector. No virtualization.
+Pagination, 20 rows per page, with a size selector offering 10, 20, 50 and 100.
+No virtualization.
 
-The server sends one page at a time, so the browser never holds more than 20
-records and the DOM never holds more than 20 rows. Virtualization solves a
-problem that only appears when thousands of rows are rendered at once; here it
-would cost measured row heights, scroll restoration, and a table that no longer
-works with find-in-page or keyboard tabbing, in exchange for nothing.
+The server sends one page at a time, so the browser holds 20 records at the
+default size and 100 at the largest the selector offers, never the full set.
+Virtualization solves a problem that only appears when thousands of rows are
+rendered at once; here it would cost measured row heights, scroll restoration,
+and a table that no longer works with find-in-page or keyboard tabbing, in
+exchange for nothing.
 
 Because filtering and sorting run in the database rather than over a loaded
-array, they apply across all 500 records rather than the visible page — and the
+array, they apply across all 500 records rather than the visible page, and the
 payload stays the same size no matter how many records exist.
 
 `placeholderData: keepPreviousData` keeps the current page on screen while the
@@ -184,11 +186,14 @@ next one loads. Without it every page change unmounts the table back to the
 skeleton, which reads as the whole screen reloading rather than a row swap.
 
 Rows that are on their way out are faded and made inert while the next page is
-in flight, with a spinner over them — otherwise a click can land on a record
+in flight, with a spinner over them. Otherwise, a click can land on a record
 that is about to be replaced and open the wrong user. The mask is a sibling of
 the horizontal scroll container, not a child: an absolutely positioned element
 inside a scroller is laid out against the scrolled content and slides away as
-soon as the table moves sideways.
+soon as the table moves sideways. The spinner sits near the top of the rows
+rather than centred in them, because a full page is taller than the viewport
+and a spinner halfway down it is below the fold exactly when it has something
+to say.
 
 ## States
 
@@ -201,23 +206,33 @@ until data lands.
 
 "Shaped like the content" is meant literally. The users skeleton is a real
 table borrowing the loaded table's own stylesheet, so the header row, the cell
-padding and the row count all match what arrives. The user details skeleton
-mirrors that page's four blocks — back link, title row with its two actions,
-profile card with its tab strip, and the details card laid out on the same
-grid. A placeholder that does not match reads as the page changing shape rather
-than filling in.
+padding and the card around them all match what arrives, and it draws as many
+rows as the page size in the URL asks for, a 50-row page that filled in as ten
+would jump the moment data landed. Its cell widths are deliberately uneven;
+rows of identical bars read as a progress bar rather than as a table.
+
+The user details skeleton mirrors that page's four blocks, back link, title
+row with its two actions, profile card with its tab strip, and the details card
+laid out on the same grid. A placeholder that does not match reads as the page
+changing shape rather than filling in.
 
 **Empty.** Three different situations get three different messages. The
 endpoint returning nothing is not the same as a filter excluding everyone,
 which is not the same as a request failing. Only the middle one offers to clear
-filters, because that is the only one where clearing them helps. The three are
-told apart by `pagination.total` and whether any filter is applied, not by
-counting rendered rows.
+filters, because that is the only one where clearing them helps.
+
+The wording comes from the query, not from the result. The table renders the
+empty slot whenever the server returned no rows, and the page fills it with
+"no results found" plus a Clear Filters button when a search term or any of the
+six filters is set, and with "no users found" when none is. The dashboard has
+its own, keyed on the stats endpoint reporting zero users, because a platform
+with no records should not answer with four zeroed cards and two empty
+breakdowns.
 
 A filter that matched nothing keeps the table rather than replacing it: the
 column headers carry the filter affordance that narrowed the result, so
 removing them takes away the control needed to widen it again. The message
-renders under the headers but outside the horizontal scroller — a cell spanning
+renders under the headers but outside the horizontal scroller, a cell spanning
 every column would be as wide as the table's 800px minimum and would sit
 off-screen on a phone.
 
@@ -228,7 +243,7 @@ found" tells people not to retry at the exact moment retrying would work.
 
 The Users and Dashboard pages each depend on two endpoints. Both are covered by
 one loading state and one error state rather than four combinations of partial
-UI — a page that renders its stat cards beside an error where the table should
+UI, a page that renders its stat cards beside an error where the table should
 be is claiming more than it knows. Retry refetches both.
 
 ### "Network Error" is not "no internet"
@@ -237,7 +252,7 @@ Axios raises the same `Network Error` for every failure that stopped a request
 before a response came back: the machine being offline, DNS not resolving, the
 API being down, a TLS or CORS rejection, an extension or corporate proxy
 blocking the call. Only the first of those is the user's connection, so
-_"please check your internet connection"_ is wrong most of the time — and it
+_"please check your internet connection"_ is wrong most of the time, and it
 sends someone to reboot a router that was working fine. The 307 on the apex
 domain [described above](#the-api) is exactly this: a server-side redirect the
 browser reports as a network failure.
@@ -252,7 +267,11 @@ UI sees it:
 | `ECONNABORTED` / `ETIMEDOUT` | the server took too long to respond |
 | The server answered | whatever the API said, carrying its status |
 
-`navigator.onLine` is read in one direction only. False is trustworthy — the
+Cancellations are the one rejection that passes through untouched. React Query
+aborts in-flight requests itself, so normalizing one would turn routine
+housekeeping into a failure nobody caused and nothing needs to recover from.
+
+`navigator.onLine` is read in one direction only. False is trustworthy, the
 browser knows it has no usable interface, so nothing could have left the
 machine. True is not: a captive portal, a dead API and a rejected preflight all
 report true. It can confirm the connection is at fault; it can never confirm
@@ -265,7 +284,7 @@ cable each read as themselves.
 React Query is set to `networkMode: 'always'` for the same reason. Its default
 pauses queries whenever the browser reports being offline, which leaves a page
 with no data, no error, and a Retry button that silently does nothing. Letting
-the request run always produces a failure the UI can name — and the attempt is
+the request run always produces a failure the UI can name, and the attempt is
 a better test of connectivity than the flag. `refetchOnReconnect` is kept on,
 which that mode otherwise disables, so a page that failed while offline
 recovers on its own once the network returns.
@@ -275,13 +294,13 @@ Without one, any render-time throw unmounts the whole tree and leaves a blank
 page, not theoretical here, since the details page reads a record straight out
 of `localStorage` and a stale entry is valid JSON of the wrong shape. The data
 router owns the boundary itself, so the recovery screen is an ordinary function
-component that reads what was caught with `useRouteError` — no class component
-anywhere in the codebase.
+component that reads what was caught with `useRouteError`.
 
 ## Routing
 
 | Path | Screen | Auth |
 |---|---|---|
+| `/` | Redirects to `/dashboard` | — |
 | `/login` | Login | Guests only |
 | `/dashboard` | Dashboard | Required |
 | `/users` | Users list | Required |
@@ -323,7 +342,7 @@ table, TanStack Table, the filter forms and all six detail sections first.
 
 ## Search and filtering
 
-The URL is the single source of truth for what the table shows — page, size,
+The URL is the single source of truth for what the table shows: page, size,
 sort column, direction, the search term and all six filters. A narrowed view
 can be linked to and survives a refresh, and the table stays a controlled
 presentation component with no query state of its own.
@@ -331,6 +350,11 @@ presentation component with no query state of its own.
 Search lives in the header, where the design puts it, and submits to
 `/users?q=…`; the API calls the same thing `search`, and the two are mapped in
 one place.
+
+The field itself is uncontrolled and keyed on the active query. The header
+outlives the pages beneath it, so remounting on a change is what resyncs the
+box when the users page clears the query or a sidebar link navigates away,
+otherwise it keeps displaying a term that is no longer narrowing anything.
 
 `src/pages/Users/usersQuery.ts` parses the URL with a Zod schema before any of
 it reaches the API. That is not ceremony: the URL is user input, and the API
@@ -366,14 +390,13 @@ anyone far enough from the server's.
 ## Dashboard
 
 The Figma frame labelled "Dashboard" is the Users screen, so the brief leaves
-the actual overview undefined.
-Rather than ship two near-identical pages, `/dashboard` shows a status
-breakdown, the top organizations by user count, and the five most recent
-sign-ups.
+the actual overview undefined. Rather than ship two near-identical pages,
+`/dashboard` shows a status breakdown, the top organizations by user count, and
+the five most recent sign-ups, under a line naming the total it is describing.
 
 The first two come from `GET /users/stats`, counted over all 500 records rather
 than recomputed in every browser. "Recently joined" is
-`?sortBy=dateJoined&sortOrder=desc&perPage=5` — sorting and slicing are the
+`?sortBy=dateJoined&sortOrder=desc&perPage=5`, sorting and slicing are the
 endpoint's job, so the page ships five rows rather than 500 to find five. The
 bars are CSS widths; a charting library is not worth it for two lists of five
 rows.
@@ -390,7 +413,7 @@ Opening a user from the table or the dashboard records that selection in
 loading rather than announcing an anonymous wait.
 
 It records the selection rather than caching a user, because the list only
-carries a summary — no personal details, bank details or tier — so the full
+carries a summary, no personal details, bank details or tier, so the full
 record is always fetched. React Query covers the repeat visit: navigating back
 into a user already seen serves them from memory within `staleTime`.
 
@@ -404,9 +427,14 @@ inside the 10-minute `gcTime` was served the previous session's data.
 Semantic elements first, ARIA only where the platform has no equivalent.
 
 Every row in the users table is reachable by keyboard, because the username
-cell is a real link rather than a click handler on a `<tr>`. Row action buttons
-are named after their user instead of announcing "button, collapsed" twenty
-times a page. Column headers carry `scope` and `aria-sort`.
+cell is a real `<a>` and not only a click handler on the `<tr>`. The row-wide
+handler stays, since the design invites clicking anywhere in a row, but nothing
+depends on it: the link carries the keyboard path and the announcement, and the
+actions cell stops the click from reaching the row so opening the menu does not
+also navigate. Row action buttons are named after their user instead of
+announcing "button, collapsed" twenty times a page. Column headers carry
+`scope` and `aria-sort`, and the sort control inside each is a button rather
+than a click handler on the `<th>`.
 
 The tabs implement the full ARIA pattern, a single tab stop, arrow keys, Home
 and End, and a panel that references its tab. Declaring `role="tab"` without
@@ -414,11 +442,17 @@ that is worse than plain buttons, because a screen reader promises "tab, 1 of
 6" and then the arrow keys do nothing. The row menu moves focus into itself on
 open and returns focus to its trigger on close.
 
+Each funnel icon in the header row is a button named for its column, "Filter
+by ORGANIZATION", carrying `aria-expanded` and `aria-haspopup="dialog"`, so
+the panel is announced as something that opens rather than as six unlabelled
+icons. That name gains "(filters active)" while a filter is applied, which is
+the same signal the highlighted icon gives sighted users.
+
 The filter panel is a `role="dialog"` that traps Tab (`useFocusTrap`). It is
 anchored under a column header but rendered after the table, so without the trap
 the keyboard never reached it: focus stayed on the header button that opened the
-panel and Tab kept walking the remaining columns underneath it. Closing —
-Escape, Filter, Reset — hands focus back to that header button, unless the user
+panel and Tab kept walking the remaining columns underneath it. Closing:
+Escape, Filter, Reset, hands focus back to that header button, unless the user
 already clicked somewhere else, in which case pulling focus back would fight
 them.
 
@@ -432,19 +466,28 @@ moment someone types.
 
 | Width | Behaviour |
 |---|---|
-| ≤ 480px | Stat cards drop to a single column, pagination stacks and centres |
-| ≤ 768px | Sidebar becomes a drawer, search moves to its own row under the logo |
-| ≤ 1024px | Stat cards drop to two columns, dashboard panels stack |
+| ≤ 480px | Stat cards drop to a single column, pagination stacks and centres, the profile name gives way to the avatar alone |
+| ≤ 768px | Sidebar becomes a drawer behind a menu button, search wraps onto its own row under the logo, the Docs link drops |
+| ≤ 1024px | Stat cards drop to two columns, dashboard panels stack, header gaps tighten |
 | above | Full layout, sidebar fixed |
 
 All three are `max-width` queries through one `respond-to` mixin, so the
 breakpoints live in one place. Tables scroll horizontally inside their card
 rather than squeezing columns to nothing.
 
+The header is a three-item flex row, logo group, search, profile group,
+rather than a search nested inside the left group, which is what lets the
+search wrap alone below 768px while the other two stay side by side on the row
+above. The header's height is a variable with a stacked counterpart, so the app
+layout's top offset follows the wrap instead of being guessed at. Between that
+breakpoint and roughly 900px the row is too narrow to hold the search at its
+400px design width, so it is allowed to shrink rather than push the profile
+group off the edge.
+
 Side by side, the pagination's two halves wrap into a ragged left-aligned stack
 on a phone, so below 480px they stack and centre instead, and the controls grow
 to 30px touch targets. The widest run the page list produces is nine controls,
-which measures 262px — it fits on one row down to about a 340px viewport and
+which measures 262px, it fits on one row down to about a 340px viewport and
 wraps to a second centred row below that rather than overflowing the card.
 
 ## Testing
@@ -462,7 +505,7 @@ test asserts the negative directly: when the browser has a network, the message
 must not mention the internet connection.
 
 Because the server does the filtering, the page's job is to ask the right
-question, not to narrow an array — so that is what the assertions check.
+question, not to narrow an array, so that is what the assertions check.
 Applying a status filter sends `status`, sorting a column sends `sortBy` and
 `sortOrder`, and either one resets `page` to 1. Rendering three users and
 expecting one back after a filter would prove nothing about code that ships;
@@ -481,8 +524,19 @@ response, so a change to a contract touches one file instead of six.
 
 ## Bundle
 
-Initial JavaScript is **209 kB**, or **66 kB gzipped**, with each route loading
-its own chunk on demand.
+Initial JavaScript is **341 kB**, or **110 kB gzipped** — the entry chunk plus
+the four it statically imports, which `index.html` preloads:
+
+| Chunk | Raw | Gzipped |
+|---|---|---|
+| `index` (entry) | 209.9 kB | 66.4 kB |
+| vendor | 103.7 kB | 34.4 kB |
+| `ui` | 25.4 kB | 8.9 kB |
+| icon factory, storage | 1.8 kB | 1.0 kB |
+
+Everything else loads per route. The login screen pulls the form stack  React
+Hook Form and Zod, 95 kB — and the users page adds its own 58 kB of table on
+top, which nobody who never opens it pays for.
 
 Three choices keep it there: routes are code-split, dates are formatted with
 `Intl` rather than a date library, and the dataset lives behind the API rather
@@ -490,16 +544,16 @@ than being shipped or generated in the browser.
 
 ## Things left undone
 
-The row actions — blacklist, activate, deactivate — do not mutate anything.
-There is no backend to mutate against, and faking it with optimistic updates
-would have been theatre.
+The row actions, blacklist, activate, deactivate, do not mutate anything, and
+neither do the two buttons above a user's profile. There is no backend to
+mutate against, and faking it with optimistic updates would have been theatre.
 
 Two of the six detail tabs, Documents and App and System, are permanently
 empty. That is deliberate: they demonstrate the empty state on a screen where
 it would otherwise never appear.
 
 The header's notification bell is decorative, as it is in the design. The
-"Docs" link is not — it opens Lendsqr's published documentation at
+"Docs" link is not, it opens Lendsqr's published documentation at
 <https://docs.lendsqr.com> in a new tab, with `rel="noopener noreferrer"`. A
 real destination exists for that label, so pointing at it beats an `href="#"`
 that does nothing.
