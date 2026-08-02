@@ -524,7 +524,7 @@ response, so a change to a contract touches one file instead of six.
 
 ## Bundle
 
-Initial JavaScript is **341 kB**, or **110 kB gzipped** — the entry chunk plus
+Initial JavaScript is **341 kB**, or **110 kB gzipped** the entry chunk plus
 the four it statically imports, which `index.html` preloads:
 
 | Chunk | Raw | Gzipped |
@@ -535,7 +535,7 @@ the four it statically imports, which `index.html` preloads:
 | icon factory, storage | 1.8 kB | 1.0 kB |
 
 Everything else loads per route. The login screen pulls the form stack  React
-Hook Form and Zod, 95 kB — and the users page adds its own 58 kB of table on
+Hook Form and Zod, 95 kB, and the users page adds its own 58 kB of table on
 top, which nobody who never opens it pays for.
 
 Three choices keep it there: routes are code-split, dates are formatted with
