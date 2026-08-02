@@ -17,7 +17,7 @@
   align-items: center;
   width: 50%;
   padding: $spacing-xl;
-  background-color: var(--color-white);
+  background-color: var(--color-background);
 
   @include respond-to(tablet) {
     display: none;
