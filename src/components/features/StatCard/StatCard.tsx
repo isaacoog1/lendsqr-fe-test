@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import { Card } from '@/components/ui'
 import styles from './StatCard.module.scss'
 
 interface StatCardProps {
@@ -17,7 +18,7 @@ function StatCard({
   value,
 }: StatCardProps) {
   return (
-    <div className={styles.card}>
+    <Card padding="md" className={styles.card}>
       <div
         className={styles.iconWrapper}
         style={{ backgroundColor: iconBgColor }}
@@ -26,7 +27,7 @@ function StatCard({
       </div>
       <p className={styles.label}>{label}</p>
       <p className={styles.value}>{value}</p>
-    </div>
+    </Card>
   )
 }
 

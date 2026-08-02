@@ -1,11 +1,10 @@
 @use '@/styles/abstracts/variables' as *;
 
+// The design's 160px comes out of the padding, the icon, and tight leading
+// on the two text rows. min-height pins it without clipping a label that
+// wraps on a narrow column.
 .card {
-  padding: $spacing-lg;
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: $radius-sm;
-  box-shadow: $shadow-sm;
+  min-height: $stat-card-height;
 }
 
 .iconWrapper {
@@ -21,6 +20,7 @@
 .label {
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
+  line-height: $line-height-tight;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -30,5 +30,6 @@
 .value {
   font-size: $font-size-2xl;
   font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
   color: var(--color-text-primary);
 }
