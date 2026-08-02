@@ -25,7 +25,13 @@ import type {
   UserStatus,
   UserSummary,
 } from '@/types'
-import { cn, formatDate, saveSelectedUser } from '@/utils'
+import {
+  cn,
+  formatDate,
+  saveSelectedUser,
+  getStatusActions,
+  type UserStatusAction,
+} from '@/utils'
 import { USER_SORT_FIELDS } from '@/constants'
 import {
   Badge,
@@ -45,40 +51,29 @@ export interface SortState {
   sortOrder?: SortOrder
 }
 
+const ACTION_META: Record<
+  UserStatusAction,
+  { label: string; icon: ReactNode }
+> = {
+  blacklist: { label: 'Blacklist User', icon: <UserX size={14} /> },
+  activate: { label: 'Activate User', icon: <UserCheck size={14} /> },
+  deactivate: { label: 'Deactivate User', icon: <UserMinus size={14} /> },
+}
+
 function getActionsForStatus(status: UserStatus, onViewDetails: () => void) {
   const viewDetails = {
     label: 'View Details',
     icon: <Eye size={14} />,
     onClick: onViewDetails,
   }
-  const blacklist = {
-    label: 'Blacklist User',
-    icon: <UserX size={14} />,
-    onClick: () => {},
-  }
-  const activate = {
-    label: 'Activate User',
-    icon: <UserCheck size={14} />,
-    onClick: () => {},
-  }
 
-  switch (status) {
-    case 'active':
-      return [
-        viewDetails,
-        blacklist,
-        {
-          label: 'Deactivate User',
-          icon: <UserMinus size={14} />,
-          onClick: () => {},
-        },
-      ]
-    case 'inactive':
-    case 'pending':
-      return [viewDetails, activate, blacklist]
-    case 'blacklisted':
-      return [viewDetails, activate]
-  }
+  return [
+    viewDetails,
+    ...getStatusActions(status).map((action) => ({
+      ...ACTION_META[action],
+      onClick: () => {},
+    })),
+  ]
 }
 
 const columnHelper = createColumnHelper<UserSummary>()

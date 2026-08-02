@@ -6,3 +6,5 @@ export {
   getSelectedUser,
   clearSelectedUser,
 } from './storage'
+export { getStatusActions } from './userStatusActions'
+export type { UserStatusAction } from './userStatusActions'

@@ -1,6 +1,7 @@
 export { Avatar } from './Avatar'
 export { Badge } from './Badge'
 export { Button } from './Button'
+export type { ButtonVariant } from './Button'
 export { Card } from './Card'
 export { Dropdown } from './Dropdown'
 export { default as EmptyState } from './EmptyState/EmptyState'

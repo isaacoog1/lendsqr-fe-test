@@ -229,8 +229,8 @@ describe('UserDetailsPage', () => {
   })
 
   describe('actions', () => {
-    it('renders blacklist and activate buttons', async () => {
-      mockedGetById.mockResolvedValue(mockUser)
+    it('offers blacklist and deactivate for an active user', async () => {
+      mockedGetById.mockResolvedValue(buildUser({ status: 'active' }))
       renderUserDetails()
       await screen.findByText('User Details')
 
@@ -238,8 +238,43 @@ describe('UserDetailsPage', () => {
         screen.getByRole('button', { name: 'BLACKLIST USER' }),
       ).toBeInTheDocument()
       expect(
+        screen.getByRole('button', { name: 'DEACTIVATE USER' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'ACTIVATE USER' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('offers activate and blacklist for an inactive user', async () => {
+      mockedGetById.mockResolvedValue(buildUser({ status: 'inactive' }))
+      renderUserDetails()
+      await screen.findByText('User Details')
+
+      expect(
         screen.getByRole('button', { name: 'ACTIVATE USER' }),
       ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'BLACKLIST USER' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'DEACTIVATE USER' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('offers only activate for a blacklisted user', async () => {
+      mockedGetById.mockResolvedValue(buildUser({ status: 'blacklisted' }))
+      renderUserDetails()
+      await screen.findByText('User Details')
+
+      expect(
+        screen.getByRole('button', { name: 'ACTIVATE USER' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'BLACKLIST USER' }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'DEACTIVATE USER' }),
+      ).not.toBeInTheDocument()
     })
   })
 })

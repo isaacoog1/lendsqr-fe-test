@@ -2,8 +2,15 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/utils'
 import styles from './Button.module.scss'
 
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'outlinePrimary'
+  | 'danger'
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger'
+  variant?: ButtonVariant
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   children: ReactNode

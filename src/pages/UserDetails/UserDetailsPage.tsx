@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { getSelectedUser } from '@/utils'
+import { getSelectedUser, getStatusActions, type UserStatusAction } from '@/utils'
 import { useUser } from '@/hooks'
 import { UserProfileHeader } from '@/components/features/UserProfileHeader'
-import { Button, ErrorState, tabId, tabPanelId } from '@/components/ui'
+import {
+  Button,
+  ErrorState,
+  tabId,
+  tabPanelId,
+  type ButtonVariant,
+} from '@/components/ui'
 import {
   GeneralDetails,
   Documents,
@@ -17,6 +23,15 @@ import UserDetailsSkeleton from './UserDetailsSkeleton'
 import styles from './UserDetailsPage.module.scss'
 
 const TAB_ID_PREFIX = 'user-details'
+
+const ACTION_META: Record<
+  UserStatusAction,
+  { label: string; variant: ButtonVariant }
+> = {
+  blacklist: { label: 'BLACKLIST USER', variant: 'danger' },
+  activate: { label: 'ACTIVATE USER', variant: 'outlinePrimary' },
+  deactivate: { label: 'DEACTIVATE USER', variant: 'outline' },
+}
 
 const TABS = [
   { key: 'general', label: 'General Details' },
@@ -93,12 +108,11 @@ function UserDetailsPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>User Details</h1>
         <div className={styles.actions}>
-          <Button variant="danger" size="sm">
-            BLACKLIST USER
-          </Button>
-          <Button variant="primary" size="sm">
-            ACTIVATE USER
-          </Button>
+          {getStatusActions(user.status).map((action) => (
+            <Button key={action} variant={ACTION_META[action].variant} size="sm">
+              {ACTION_META[action].label}
+            </Button>
+          ))}
         </div>
       </div>
 

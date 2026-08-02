@@ -88,6 +88,17 @@
   }
 }
 
+.outlinePrimary {
+  background-color: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+  }
+}
+
 .loading {
   position: relative;
 }
