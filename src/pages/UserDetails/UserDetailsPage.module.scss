@@ -61,13 +61,3 @@
     padding: $spacing-md;
   }
 }
-
-.skeletonHeader {
-  display: flex;
-  align-items: center;
-  gap: $spacing-lg;
-  padding: $spacing-lg;
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: $radius-sm;
-}

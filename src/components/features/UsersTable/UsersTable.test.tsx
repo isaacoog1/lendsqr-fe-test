@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -27,6 +28,8 @@ interface RenderOptions {
   pagination?: Partial<Pagination>
   sort?: SortState
   withFilters?: boolean
+  isFetching?: boolean
+  emptyState?: ReactNode
 }
 
 function renderTable({
@@ -34,6 +37,8 @@ function renderTable({
   pagination = { total: 25, totalPages: 2 },
   sort = {},
   withFilters = false,
+  isFetching = false,
+  emptyState,
 }: RenderOptions = {}) {
   const onApply = vi.fn()
   const onReset = vi.fn()
@@ -52,6 +57,8 @@ function renderTable({
         onSortChange={onSortChange}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
+        isFetching={isFetching}
+        emptyState={emptyState}
         filters={
           withFilters
             ? {
@@ -115,6 +122,76 @@ describe('UsersTable', () => {
       renderTable()
 
       expect(screen.getAllByText('Active').length).toBeGreaterThan(0)
+    })
+  })
+
+  // A result set of zero is still a table: the headers carry the filter that
+  // narrowed it, and taking them away removes the way back.
+  describe('empty results', () => {
+    const empty = { users: [], pagination: { total: 0, totalPages: 0 } }
+
+    it('keeps the column headers', () => {
+      renderTable(empty)
+
+      expect(
+        screen.getByRole('columnheader', { name: /ORGANIZATION/ }),
+      ).toBeInTheDocument()
+    })
+
+    it('keeps the header filter affordance', () => {
+      renderTable({ ...empty, withFilters: true })
+
+      expect(
+        screen.getByRole('button', { name: 'Filter by ORGANIZATION' }),
+      ).toBeInTheDocument()
+    })
+
+    it('explains the absence without dropping the table', () => {
+      renderTable(empty)
+
+      expect(screen.getByText('No users found')).toBeInTheDocument()
+      // The header row, and nothing else.
+      expect(screen.getAllByRole('row')).toHaveLength(1)
+    })
+
+    it('shows the message the caller supplied', () => {
+      renderTable({ ...empty, emptyState: <p>Nothing matched that filter</p> })
+
+      expect(
+        screen.getByText('Nothing matched that filter'),
+      ).toBeInTheDocument()
+      expect(screen.queryByText('No users found')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('while a new page is loading', () => {
+    it('keeps the current rows on screen', () => {
+      renderTable({ isFetching: true })
+
+      expect(screen.getByRole('link', { name: 'user0' })).toBeInTheDocument()
+    })
+
+    it('shows a spinner over them', () => {
+      renderTable({ isFetching: true })
+
+      expect(
+        screen.getByRole('status', { name: 'Loading' }),
+      ).toBeInTheDocument()
+    })
+
+    it('marks the table busy so a row cannot be opened by mistake', () => {
+      renderTable({ isFetching: true })
+
+      const table = screen.getByRole('table')
+      expect(table.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
+    })
+
+    it('leaves the table interactive once the rows are settled', () => {
+      renderTable()
+
+      const table = screen.getByRole('table')
+      expect(table.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'false')
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
   })
 

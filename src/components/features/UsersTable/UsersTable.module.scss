@@ -31,10 +31,55 @@ $header-row-height: 42px;
   }
 }
 
+.tableArea {
+  position: relative;
+}
+
 .tableWrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+}
+
+// The rows and, when there are none, the message that stands in for them.
+.tableContent {
+  transition: opacity $transition-base;
+}
+
+// Rows on their way out: faded, and inert so a click cannot land on a record
+// that is about to be replaced by the incoming page.
+.busy {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.45;
+}
+
+.loadingMask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  // Pinned near the top of the rows instead of centred: a full page of
+  // records is taller than the viewport, and a spinner halfway down it would
+  // be below the fold exactly when it has something to say.
+  align-items: flex-start;
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.loadingIndicator {
+  display: inline-flex;
+  margin-top: calc(#{$header-row-height} + #{$spacing-md});
+  padding: $spacing-md;
+  border-radius: $radius-full;
+  background-color: var(--color-white);
+  box-shadow: $shadow-lg;
+}
+
+// Sits under the header row, in the page's own flow, so the message stays in
+// view however far the header above it has been scrolled sideways.
+.empty {
+  display: flex;
+  justify-content: center;
 }
 
 .table {
@@ -151,4 +196,13 @@ $header-row-height: 42px;
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
+}
+
+// Used by UsersTableSkeleton, which borrows the chrome above so the
+// placeholder occupies the same box the loaded table will.
+.skeletonPagination {
+  @include flex-between;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
 }

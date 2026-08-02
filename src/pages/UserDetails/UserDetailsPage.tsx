@@ -4,14 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getSelectedUser } from '@/utils'
 import { useUser } from '@/hooks'
 import { UserProfileHeader } from '@/components/features/UserProfileHeader'
-import {
-  Button,
-  ErrorState,
-  Skeleton,
-  SkeletonGroup,
-  tabId,
-  tabPanelId,
-} from '@/components/ui'
+import { Button, ErrorState, tabId, tabPanelId } from '@/components/ui'
 import {
   GeneralDetails,
   Documents,
@@ -20,6 +13,7 @@ import {
   Savings,
   AppAndSystem,
 } from './sections'
+import UserDetailsSkeleton from './UserDetailsSkeleton'
 import styles from './UserDetailsPage.module.scss'
 
 const TAB_ID_PREFIX = 'user-details'
@@ -51,19 +45,7 @@ function UserDetailsPage() {
         ? `Loading ${selected.username}`
         : 'Loading user details'
 
-    return (
-      <SkeletonGroup label={label} className={styles.page}>
-        <Skeleton width="120px" height="16px" />
-        <div className={styles.skeletonHeader}>
-          <Skeleton variant="circular" width="100px" height="100px" />
-          <div>
-            <Skeleton width="200px" height="24px" />
-            <Skeleton width="100px" height="14px" />
-          </div>
-        </div>
-        <Skeleton height="300px" />
-      </SkeletonGroup>
-    )
+    return <UserDetailsSkeleton label={label} />
   }
 
   if (isError || !user) {

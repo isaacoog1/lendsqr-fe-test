@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   useReactTable,
   createColumnHelper,
@@ -27,7 +27,13 @@ import type {
 } from '@/types'
 import { cn, formatDate, saveSelectedUser } from '@/utils'
 import { USER_SORT_FIELDS } from '@/constants'
-import { Badge, Dropdown, Pagination } from '@/components/ui'
+import {
+  Badge,
+  Dropdown,
+  EmptyState,
+  Pagination,
+  Spinner,
+} from '@/components/ui'
 import {
   UserFilters,
   type FilterFormData,
@@ -96,6 +102,13 @@ interface UsersTableProps {
   onPageSizeChange: (size: number) => void
   /** Omit to render the table without the header filter affordance. */
   filters?: FilterConfig
+  /**
+   * A new page or query is in flight while the previous rows are still shown.
+   * Masks the table so nobody clicks a row that is about to be replaced.
+   */
+  isFetching?: boolean
+  /** Shown under the column headers when the server returned no rows. */
+  emptyState?: ReactNode
 }
 
 function UsersTable({
@@ -106,6 +119,8 @@ function UsersTable({
   onPageChange,
   onPageSizeChange,
   filters,
+  isFetching = false,
+  emptyState,
 }: UsersTableProps) {
   const navigate = useNavigate()
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -241,108 +256,149 @@ function UsersTable({
     getCoreRowModel: getCoreRowModel(),
   })
 
+  const rows = table.getRowModel().rows
+
   return (
     <div className={styles.container}>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const label = String(header.column.columnDef.header)
-                  const sortDirection = header.column.getIsSorted()
+      {/*
+        The mask is a sibling of the scroll container rather than a child of
+        it: inside, an absolutely positioned element is laid out against the
+        scrolled content, so it would slide away as soon as the table is
+        scrolled sideways.
+      */}
+      <div className={styles.tableArea} aria-busy={isFetching}>
+        <div className={cn(styles.tableContent, isFetching && styles.busy)}>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      const label = String(header.column.columnDef.header)
+                      const sortDirection = header.column.getIsSorted()
 
-                  return (
-                    <th
-                      key={header.id}
-                      scope="col"
-                      className={styles.th}
-                      aria-sort={
-                        sortDirection === 'asc'
-                          ? 'ascending'
-                          : sortDirection === 'desc'
-                            ? 'descending'
-                            : 'none'
-                      }
-                    >
-                      <span className={styles.headerContent}>
-                        {header.column.getCanSort() ? (
-                          <button
-                            type="button"
-                            className={styles.sortButton}
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
+                      return (
+                        <th
+                          key={header.id}
+                          scope="col"
+                          className={styles.th}
+                          aria-sort={
+                            sortDirection === 'asc'
+                              ? 'ascending'
+                              : sortDirection === 'desc'
+                                ? 'descending'
+                                : 'none'
+                          }
+                        >
+                          <span className={styles.headerContent}>
+                            {header.column.getCanSort() ? (
+                              <button
+                                type="button"
+                                className={styles.sortButton}
+                                onClick={header.column.getToggleSortingHandler()}
+                              >
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                                {sortDirection === 'asc' && (
+                                  <ChevronUp size={12} aria-hidden="true" />
+                                )}
+                                {sortDirection === 'desc' && (
+                                  <ChevronDown size={12} aria-hidden="true" />
+                                )}
+                              </button>
+                            ) : (
+                              flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )
                             )}
-                            {sortDirection === 'asc' && (
-                              <ChevronUp size={12} aria-hidden="true" />
-                            )}
-                            {sortDirection === 'desc' && (
-                              <ChevronDown size={12} aria-hidden="true" />
-                            )}
-                          </button>
-                        ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )
-                        )}
 
-                        {filters && header.column.getCanSort() && (
-                          <button
-                            type="button"
-                            className={cn(
-                              styles.filterIcon,
-                              filters.isActive && styles.filterIconActive,
+                            {filters && header.column.getCanSort() && (
+                              <button
+                                type="button"
+                                className={cn(
+                                  styles.filterIcon,
+                                  filters.isActive && styles.filterIconActive,
+                                )}
+                                onClick={() => setFiltersOpen((open) => !open)}
+                                aria-label={
+                                  filters.isActive
+                                    ? `Filter by ${label} (filters active)`
+                                    : `Filter by ${label}`
+                                }
+                                aria-expanded={filtersOpen}
+                              >
+                                <ListFilter size={12} />
+                              </button>
                             )}
-                            onClick={() => setFiltersOpen((open) => !open)}
-                            aria-label={
-                              filters.isActive
-                                ? `Filter by ${label} (filters active)`
-                                : `Filter by ${label}`
-                            }
-                            aria-expanded={filtersOpen}
-                          >
-                            <ListFilter size={12} />
-                          </button>
-                        )}
-                      </span>
-                    </th>
-                  )
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className={styles.tr}
-                onClick={() => {
-                  const user = row.original
-                  saveSelectedUser(user)
-                  navigate(`/users/${user.id}`)
-                }}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={styles.td}
-                    onClick={
-                      cell.column.id === 'actions'
-                        ? (event) => event.stopPropagation()
-                        : undefined
-                    }
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                          </span>
+                        </th>
+                      )
+                    })}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={styles.tr}
+                    onClick={() => {
+                      const user = row.original
+                      saveSelectedUser(user)
+                      navigate(`/users/${user.id}`)
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className={styles.td}
+                        onClick={
+                          cell.column.id === 'actions'
+                            ? (event) => event.stopPropagation()
+                            : undefined
+                        }
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/*
+            A query that matched nothing keeps the headers — and with them the
+            filter affordance that produced the empty result. The message sits
+            outside the horizontal scroller rather than in a spanning cell: a
+            cell would be as wide as the table's 800px minimum and scroll out
+            of sight on a phone.
+          */}
+          {rows.length === 0 && (
+            <div className={styles.empty}>
+              {emptyState ?? (
+                <EmptyState
+                  title="No users found"
+                  description="There are no users to display at this time."
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {isFetching && (
+          <div className={styles.loadingMask}>
+            <span className={styles.loadingIndicator}>
+              <Spinner />
+            </span>
+          </div>
+        )}
       </div>
 
       {/*

@@ -27,6 +27,15 @@ describe('Pagination', () => {
     expect(screen.getByLabelText('Next page')).toBeDisabled()
   })
 
+  // A filter that matched nothing reports zero pages while still sitting on
+  // page one, which is not the same as being on the last of several.
+  it('disables both arrows when there is nothing to page through', () => {
+    render(<Pagination {...defaultProps} totalPages={0} totalItems={0} />)
+
+    expect(screen.getByLabelText('Previous page')).toBeDisabled()
+    expect(screen.getByLabelText('Next page')).toBeDisabled()
+  })
+
   it('calls onPageChange when a page is clicked', async () => {
     const user = userEvent.setup()
     const onPageChange = vi.fn()

@@ -1,7 +1,11 @@
 import { useSearchParams } from 'react-router-dom'
 import { useUsers, useUserStats } from '@/hooks'
 import { StatCard } from '@/components/features/StatCard'
-import { UsersTable, type SortState } from '@/components/features/UsersTable'
+import {
+  UsersTable,
+  UsersTableSkeleton,
+  type SortState,
+} from '@/components/features/UsersTable'
 import type { FilterFormData } from '@/components/features/UserFilters'
 import {
   Skeleton,
@@ -12,6 +16,7 @@ import {
 } from '@/components/ui'
 import { dashboardStats } from '@/config/dashboardStats'
 import {
+  DEFAULT_PAGE_SIZE,
   FILTER_KEYS,
   hasActiveFilters,
   parseUsersQuery,
@@ -22,7 +27,12 @@ import styles from './UsersPage.module.scss'
 /** Values written into the URL. `undefined` and `''` remove the parameter. */
 type QueryPatch = Record<string, string | number | undefined>
 
-function UsersPageSkeleton() {
+interface UsersPageSkeletonProps {
+  /** Mirrors the page size in the URL so the row count does not jump. */
+  rows: number
+}
+
+function UsersPageSkeleton({ rows }: UsersPageSkeletonProps) {
   return (
     <SkeletonGroup label="Loading users" className={styles.page}>
       <h1 className={styles.title}>Users</h1>
@@ -35,11 +45,7 @@ function UsersPageSkeleton() {
           </div>
         ))}
       </div>
-      <div className={styles.skeletonTable}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} height="48px" />
-        ))}
-      </div>
+      <UsersTableSkeleton rows={rows} />
     </SkeletonGroup>
   )
 }
@@ -94,7 +100,7 @@ function UsersPage() {
   // cover them. They run in parallel and the stats response is cached across
   // the dashboard, so in practice they resolve together.
   if (usersQuery.isLoading || statsQuery.isLoading) {
-    return <UsersPageSkeleton />
+    return <UsersPageSkeleton rows={query.perPage ?? DEFAULT_PAGE_SIZE} />
   }
 
   if (
@@ -154,39 +160,45 @@ function UsersPage() {
       </div>
 
       <div className={styles.tableSection}>
-        {pagination.total === 0 ? (
-          <EmptyState
-            title={isNarrowed ? 'No results found' : 'No users found'}
-            description={
-              isNarrowed
-                ? 'Try adjusting your search or filter criteria.'
-                : 'There are no users to display at this time.'
-            }
-            action={
-              isNarrowed && (
-                <Button variant="outline" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              )
-            }
-          />
-        ) : (
-          <UsersTable
-            data={users}
-            pagination={pagination}
-            sort={{ sortBy: query.sortBy, sortOrder: query.sortOrder }}
-            onSortChange={applySort}
-            onPageChange={(page) => updateQuery({ page }, { resetPage: false })}
-            onPageSizeChange={(perPage) => updateQuery({ perPage })}
-            filters={{
-              organizations: stats.organizations,
-              values: toFilterValues(query),
-              isActive: hasActiveFilters(query),
-              onApply: applyFilters,
-              onReset: clearFilters,
-            }}
-          />
-        )}
+        {/*
+          The table renders in every state, including the one where nothing
+          matched: the headers carry the filter that narrowed the result, so
+          removing them would take away the control needed to widen it again.
+        */}
+        <UsersTable
+          data={users}
+          pagination={pagination}
+          sort={{ sortBy: query.sortBy, sortOrder: query.sortOrder }}
+          onSortChange={applySort}
+          onPageChange={(page) => updateQuery({ page }, { resetPage: false })}
+          onPageSizeChange={(perPage) => updateQuery({ perPage })}
+          // The rows on screen are the previous query's until this resolves.
+          isFetching={usersQuery.isFetching}
+          emptyState={
+            <EmptyState
+              title={isNarrowed ? 'No results found' : 'No users found'}
+              description={
+                isNarrowed
+                  ? 'Try adjusting your search or filter criteria.'
+                  : 'There are no users to display at this time.'
+              }
+              action={
+                isNarrowed && (
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )
+              }
+            />
+          }
+          filters={{
+            organizations: stats.organizations,
+            values: toFilterValues(query),
+            isActive: hasActiveFilters(query),
+            onApply: applyFilters,
+            onReset: clearFilters,
+          }}
+        />
       </div>
     </div>
   )

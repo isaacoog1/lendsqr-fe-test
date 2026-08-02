@@ -155,6 +155,21 @@ describe('UsersPage', () => {
       ).not.toBeInTheDocument()
     })
 
+    // Dropping the table would take the filter controls with it, leaving the
+    // user holding a query they can no longer edit.
+    it('keeps the table and its filters when nothing matched', async () => {
+      mockedList.mockResolvedValue(buildPaginatedUsers([], { total: 0 }))
+      renderUsersPage('/users?status=blacklisted')
+
+      await waitFor(() => {
+        expect(screen.getByText('No results found')).toBeInTheDocument()
+      })
+      expect(screen.getByText('ORGANIZATION')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /Filter by ORGANIZATION/ }),
+      ).toBeInTheDocument()
+    })
+
     it('offers to clear filters when the query excludes everyone', async () => {
       mockedList.mockResolvedValue(buildPaginatedUsers([], { total: 0 }))
       renderUsersPage('/users?q=zzzznonexistent')

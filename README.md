@@ -183,6 +183,13 @@ payload stays the same size no matter how many records exist.
 next one loads. Without it every page change unmounts the table back to the
 skeleton, which reads as the whole screen reloading rather than a row swap.
 
+Rows that are on their way out are faded and made inert while the next page is
+in flight, with a spinner over them — otherwise a click can land on a record
+that is about to be replaced and open the wrong user. The mask is a sibling of
+the horizontal scroll container, not a child: an absolutely positioned element
+inside a scroller is laid out against the scrolled content and slides away as
+soon as the table moves sideways.
+
 ## States
 
 The design shows the happy path. The other three were designed here.
@@ -192,12 +199,27 @@ spinner. Skeletons are `aria-hidden`, so each group sits inside a labelled live
 region, otherwise the page announces nothing at all and simply appears empty
 until data lands.
 
+"Shaped like the content" is meant literally. The users skeleton is a real
+table borrowing the loaded table's own stylesheet, so the header row, the cell
+padding and the row count all match what arrives. The user details skeleton
+mirrors that page's four blocks — back link, title row with its two actions,
+profile card with its tab strip, and the details card laid out on the same
+grid. A placeholder that does not match reads as the page changing shape rather
+than filling in.
+
 **Empty.** Three different situations get three different messages. The
 endpoint returning nothing is not the same as a filter excluding everyone,
 which is not the same as a request failing. Only the middle one offers to clear
 filters, because that is the only one where clearing them helps. The three are
 told apart by `pagination.total` and whether any filter is applied, not by
 counting rendered rows.
+
+A filter that matched nothing keeps the table rather than replacing it: the
+column headers carry the filter affordance that narrowed the result, so
+removing them takes away the control needed to widen it again. The message
+renders under the headers but outside the horizontal scroller — a cell spanning
+every column would be as wide as the table's 800px minimum and would sit
+off-screen on a phone.
 
 **Error.** A failed list offers Retry, which refetches. On the details page a
 404 and a network failure are told apart: a missing record offers a way back to
@@ -402,7 +424,7 @@ moment someone types.
 
 | Width | Behaviour |
 |---|---|
-| ≤ 480px | Stat cards drop to a single column |
+| ≤ 480px | Stat cards drop to a single column, pagination stacks and centres |
 | ≤ 768px | Sidebar becomes a drawer, search moves to its own row under the logo |
 | ≤ 1024px | Stat cards drop to two columns, dashboard panels stack |
 | above | Full layout, sidebar fixed |
@@ -411,9 +433,15 @@ All three are `max-width` queries through one `respond-to` mixin, so the
 breakpoints live in one place. Tables scroll horizontally inside their card
 rather than squeezing columns to nothing.
 
+Side by side, the pagination's two halves wrap into a ragged left-aligned stack
+on a phone, so below 480px they stack and centre instead, and the controls grow
+to 30px touch targets. The widest run the page list produces is nine controls,
+which measures 262px — it fits on one row down to about a 340px viewport and
+wraps to a second centred row below that rather than overflowing the card.
+
 ## Testing
 
-214 tests across 25 files. Roughly 94% of statements and 90% of branches.
+224 tests across 25 files. Roughly 94% of statements and 90% of branches.
 
 The suite mocks the service layer, which is the seam that makes failure paths
 testable at all. Without it there is no way to make a request fail, so there is

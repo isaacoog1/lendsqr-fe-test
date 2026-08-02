@@ -6,6 +6,14 @@
   flex-wrap: wrap;
   gap: $spacing-md;
   padding: $spacing-md 0;
+
+  // Side by side, the two halves wrap into a ragged left-aligned stack on a
+  // phone. Stacked and centred they read as one control instead.
+  @include respond-to(mobile) {
+    flex-direction: column;
+    justify-content: center;
+    gap: $spacing-md;
+  }
 }
 
 .info {
@@ -14,6 +22,10 @@
   gap: $spacing-sm;
   font-size: $font-size-sm;
   color: var(--color-text-secondary);
+
+  @include respond-to(mobile) {
+    justify-content: center;
+  }
 }
 
 .sizeSelect {
@@ -42,8 +54,14 @@
   align-items: center;
   gap: 4px;
 
+  // The widest run the page list produces is nine controls. Below roughly a
+  // 340px viewport they no longer fit on one line, so they wrap to a second
+  // centred row rather than overflowing the card.
   @include respond-to(mobile) {
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 2px;
+    width: 100%;
   }
 }
 
@@ -70,6 +88,12 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+
+  // A touch target, not a cursor target.
+  @include respond-to(mobile) {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 .page {
@@ -93,11 +117,23 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+
+  @include respond-to(mobile) {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 2px;
+  }
 }
 
 .active {
   color: var(--color-text-primary);
   font-weight: $font-weight-bold;
+
+  // Bold alone is easy to miss at arm's length on a phone.
+  @include respond-to(mobile) {
+    background-color: var(--color-secondary-light);
+    border-radius: $radius-sm;
+  }
 }
 
 .ellipsis {
@@ -106,4 +142,8 @@
   height: 24px;
   font-size: $font-size-sm;
   color: var(--color-text-secondary);
+
+  @include respond-to(mobile) {
+    min-width: 18px;
+  }
 }

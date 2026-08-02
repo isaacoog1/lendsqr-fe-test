@@ -107,7 +107,10 @@ function Pagination({
         <button
           className={styles.arrow}
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          // `>=` rather than `===`: an empty result set reports zero pages
+          // while still sitting on page one, and equality would leave the
+          // arrow live with nowhere to go.
+          disabled={currentPage >= totalPages}
           aria-label="Next page"
         >
           <ChevronRight size={14} />
